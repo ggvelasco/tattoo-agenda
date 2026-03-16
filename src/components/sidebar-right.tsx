@@ -17,13 +17,14 @@ import {
   SidebarSeparator,
 } from "@/components/ui/sidebar";
 import { PlusIcon } from "lucide-react";
+import { url } from "inspector";
 
 // This is sample data.
 const data = {
   user: {
-    name: "shadcn",
-    email: "m@example.com",
-    avatar: "/avatars/shadcn.jpg",
+    name: "Gusdev Ink",
+    email: "gusdev@inkstudio.com",
+    avatar: "https://github.com/ggvelasco.png",
   },
   calendars: [
     {
