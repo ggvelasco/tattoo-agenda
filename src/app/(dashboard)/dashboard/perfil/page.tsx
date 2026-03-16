@@ -9,6 +9,7 @@ type Perfil = {
   instagram: string;
   cidade: string;
   slug: string;
+  foto_url: string;
 };
 
 export default function PerfilPage() {
@@ -20,6 +21,7 @@ export default function PerfilPage() {
   const [perfilId, setPerfilId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [fotoUrl, setFotoUrl] = useState("");
 
   useEffect(() => {
     fetchProfile();
@@ -31,6 +33,7 @@ export default function PerfilPage() {
     setInstagram(perfil.instagram || "");
     setCidade(perfil.cidade || "");
     setSlug(perfil.slug || "");
+    setFotoUrl(perfil.foto_url || "");
   }
   async function salvar() {
     if (!perfilId) return;
@@ -39,7 +42,7 @@ export default function PerfilPage() {
     const supabase = createClient();
     await supabase
       .from("profissionais")
-      .update({ nome, bio, instagram, cidade, slug })
+      .update({ nome, bio, instagram, cidade, slug, foto_url: fotoUrl })
       .eq("id", perfilId);
 
     setSaving(false);
@@ -78,6 +81,18 @@ export default function PerfilPage() {
       </div>
 
       <div className="space-y-4">
+        <div>
+          <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-2">
+            URL da foto de perfil
+          </label>
+          <input
+            type="text"
+            value={fotoUrl}
+            onChange={(e) => setFotoUrl(e.target.value)}
+            placeholder="https://..."
+            className="w-full bg-background border border-border text-foreground px-3 py-2 text-sm rounded-md focus:outline-none focus:border-ring"
+          />
+        </div>
         <div>
           <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-2">
             Nome
