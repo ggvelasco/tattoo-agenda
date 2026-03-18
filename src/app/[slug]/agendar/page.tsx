@@ -124,42 +124,37 @@ export default function AgendarPage() {
     )
       return;
     setSalvando(true);
-    const supabase = createClient();
-    let clienteId: string;
-    const { data: ce } = await supabase
-      .from("clientes")
-      .select("id")
-      .eq("telefone", telefone)
-      .maybeSingle();
-    if (ce) {
-      clienteId = ce.id;
-    } else {
-      const { data: nc } = await supabase
-        .from("clientes")
-        .insert({ nome: nomeCliente, telefone, email })
-        .select("id")
-        .single();
-      if (!nc) {
-        setSalvando(false);
-        return;
-      }
-      clienteId = nc.id;
-    }
+
     const [h, m] = horarioSelecionado.split(":").map(Number);
     const fimMin = h * 60 + m + servicoSelecionado.duracao_minutos;
     const horaFim = `${Math.floor(fimMin / 60)
       .toString()
       .padStart(2, "0")}:${(fimMin % 60).toString().padStart(2, "0")}`;
-    await supabase.from("agendamentos").insert({
-      profissional_id: profissional.id,
-      cliente_id: clienteId,
-      servico_id: servicoSelecionado.id,
-      data: dataSelecionada.toISOString().split("T")[0],
-      hora_inicio: horarioSelecionado,
-      hora_fim: horaFim,
-      status: "pendente",
-      valor: servicoSelecionado.preco,
+
+    // cria cliente e agendamento no servidor (seguro)
+    const res = await fetch("/api/agendamentos", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        profissional_id: profissional.id,
+        servico_id: servicoSelecionado.id,
+        data: dataSelecionada.toISOString().split("T")[0],
+        hora_inicio: horarioSelecionado,
+        hora_fim: horaFim,
+        valor: servicoSelecionado.preco,
+        nome: nomeCliente,
+        telefone,
+        email,
+      }),
     });
+
+    if (!res.ok) {
+      setSalvando(false);
+      return;
+    }
+
+    // envia email
+    const supabase = createClient();
     const { data: perfilCompleto } = await supabase
       .from("profissionais")
       .select("nome, email")
@@ -179,6 +174,7 @@ export default function AgendarPage() {
         hora: horarioSelecionado,
       }),
     });
+
     setSalvando(false);
     setConcluido(true);
   }
