@@ -116,7 +116,6 @@ export default function PerfilPage() {
             Bio
           </label>
           <textarea
-            type="text"
             value={bio}
             onChange={(e) => setBio(e.target.value)}
             placeholder="Digite sua bio..."
