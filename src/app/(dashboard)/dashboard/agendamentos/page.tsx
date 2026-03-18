@@ -3,8 +3,19 @@
 import { createClient } from "@/lib/supabase/client";
 import { useEffect, useState } from "react";
 
+type Agendamento = {
+  id: string;
+  data: string;
+  hora_inicio: string;
+  hora_fim: string;
+  status: string;
+  valor: number;
+  clientes: { nome: string; telefone: string; email: string } | null;
+  servicos: { nome: string; duracao_minutos: number } | null;
+};
+
 export default function AgendamentosPage() {
-  const [agendamentos, setAgendamentos] = useState([]);
+  const [agendamentos, setAgendamentos] = useState<Agendamento[]>([]);
   const [loading, setLoading] = useState(true);
 
   async function fetchAgendamentos() {
@@ -64,7 +75,7 @@ export default function AgendamentosPage() {
       {loading && (
         <p className="text-muted-foreground text-sm">Carregando...</p>
       )}
-      {agendamentos.map((ag: any) => (
+      {agendamentos.map((ag) => (
         <div key={ag.id} className="border border-border p-4 rounded-lg mb-3">
           <div className="flex items-start justify-between">
             <div>
