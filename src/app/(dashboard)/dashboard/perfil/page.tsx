@@ -51,13 +51,19 @@ export default function PerfilPage() {
 
   async function fetchProfile() {
     const supabase = createClient();
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return;
+
     const { data: perfil } = await supabase
       .from("profissionais")
       .select("*")
+      .eq("user_id", user.id)
       .single();
 
     if (!perfil) return;
-    setPerfilId(perfil.id);
     setPerfilId(perfil.id);
     perfilMontado(perfil);
     setLoading(false);

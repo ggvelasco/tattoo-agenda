@@ -56,7 +56,7 @@ export function SidebarLeft({
       <SidebarHeader className="p-4 border-b border-sidebar-border">
         <div>
           <span className="text-sm font-semibold text-sidebar-foreground">
-            GUSDEV INK STUDIO 🔥
+            Em desenvolvimento
           </span>
           <span className="text-xs text-muted-foreground block">
             Painel do estúdio

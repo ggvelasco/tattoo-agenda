@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { User } from "lucide-react";
 
 type Servico = {
   id: string;
@@ -26,9 +27,15 @@ export default function ServicosPage() {
 
   async function fetchServicos() {
     const supabase = createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return;
+
     const { data: perfil } = await supabase
       .from("profissionais")
       .select("id")
+      .eq("user_id", user.id)
       .single();
 
     if (!perfil) return;
@@ -38,9 +45,6 @@ export default function ServicosPage() {
       .select("*")
       .eq("profissional_id", perfil.id)
       .order("created_at", { ascending: false });
-
-    console.log("servicos:", data);
-    console.log("servicos error:", servicosError);
 
     setServicos(data || []);
     setLoading(false);
@@ -77,13 +81,16 @@ export default function ServicosPage() {
     setSaving(true);
 
     const supabase = createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return;
+
     const { data: perfil, error: perfilError } = await supabase
       .from("profissionais")
       .select("id")
+      .eq("user_id", user.id)
       .single();
-
-    console.log("perfil:", perfil);
-    console.log("perfil error:", perfilError);
 
     if (!perfil) return;
 

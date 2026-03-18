@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-
+import { createClient } from "@/lib/supabase/client";
 import { Calendars } from "@/components/calendars";
 import { DatePicker } from "@/components/date-picker";
 import { NavUser } from "@/components/nav-user";
@@ -17,34 +17,43 @@ import {
   SidebarSeparator,
 } from "@/components/ui/sidebar";
 import { PlusIcon } from "lucide-react";
-import { url } from "inspector";
 
-// This is sample data.
-const data = {
-  user: {
-    name: "Gusdev Ink",
-    email: "gusdev@inkstudio.com",
-    avatar: "https://github.com/ggvelasco.png",
-  },
-  calendars: [
-    {
-      name: "My Calendars",
-      items: ["Personal", "Work", "Family"],
-    },
-    {
-      name: "Favorites",
-      items: ["Holidays", "Birthdays"],
-    },
-    {
-      name: "Other",
-      items: ["Travel", "Reminders", "Deadlines"],
-    },
-  ],
-};
+const calendars = [
+  { name: "Meus calendários", items: ["Agendamentos", "Bloqueios"] },
+];
 
 export function SidebarRight({
   ...props
 }: React.ComponentProps<typeof Sidebar>) {
+  const [user, setUser] = React.useState({
+    name: "",
+    email: "",
+    avatar: "",
+  });
+
+  React.useEffect(() => {
+    async function fetchUser() {
+      const supabase = createClient();
+
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: perfil } = await supabase
+        .from("profissionais")
+        .select("nome, foto_url")
+        .single();
+
+      setUser({
+        name: perfil?.nome || user.email || "",
+        email: user.email || "",
+        avatar: perfil?.foto_url || "",
+      });
+    }
+    fetchUser();
+  }, []);
+
   return (
     <Sidebar
       collapsible="none"
@@ -52,12 +61,12 @@ export function SidebarRight({
       {...props}
     >
       <SidebarHeader className="h-16 border-b border-sidebar-border">
-        <NavUser user={data.user} />
+        <NavUser user={user} />
       </SidebarHeader>
       <SidebarContent>
         <DatePicker />
         <SidebarSeparator className="mx-0" />
-        <Calendars calendars={data.calendars} />
+        <Calendars calendars={calendars} />
       </SidebarContent>
       <SidebarFooter>
         <SidebarMenu>

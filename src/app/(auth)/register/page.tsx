@@ -12,6 +12,7 @@ export default function RegisterPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [slug, setSlug] = useState("");
 
   async function handleRegister(e: React.FormEvent) {
     e.preventDefault();
@@ -26,9 +27,6 @@ export default function RegisterPage() {
       password,
     });
 
-    console.log("auth data:", data);
-    console.log("auth error:", authError);
-
     if (authError || !data.user) {
       setError("Erro ao criar conta. Tente novamente.");
       setLoading(false);
@@ -36,25 +34,14 @@ export default function RegisterPage() {
     }
 
     // 2. cria o perfil na tabela profissionais
-    const slug = nome
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .replace(/\s+/g, "")
-      .replace(/[^a-z0-9]/g, "");
-
-    console.log("slug gerado:", slug);
-    console.log("user_id:", data.user.id);
-
     const { error: profileError } = await supabase
       .from("profissionais")
       .insert({
         user_id: data.user.id,
         nome,
         slug,
+        email: email,
       });
-
-    console.log("profile error:", profileError);
 
     if (profileError) {
       setError("Erro ao criar perfil. Tente novamente.");
@@ -103,6 +90,26 @@ export default function RegisterPage() {
               className="w-full bg-zinc-900 border border-zinc-800 text-white px-4 py-3 text-sm focus:outline-none focus:border-zinc-500 transition-colors"
               placeholder="seu@email.com"
             />
+          </div>
+          <div>
+            <label className="block text-xs uppercase tracking-widest text-zinc-500 mb-2">
+              Seu usuário
+            </label>
+            <div className="flex items-center bg-zinc-900 border border-zinc-800 focus-within:border-zinc-500 transition-colors">
+              <span className="text-zinc-500 text-sm px-3">/</span>
+              <input
+                type="text"
+                value={slug}
+                onChange={(e) =>
+                  setSlug(
+                    e.target.value.toLowerCase().replace(/[^a-z0-9]/g, ""),
+                  )
+                }
+                required
+                className="flex-1 bg-transparent text-white py-3 pr-4 text-sm focus:outline-none"
+                placeholder="username"
+              />
+            </div>
           </div>
 
           <div>

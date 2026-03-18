@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "GUSDEV INK STUDIO - Painel de controle",
+  title: " Tattooagenda — Gerencie seu estúdio de tatuagem com facilidade",
   description:
     "Gerencie seu estúdio de tatuagem com facilidade usando nosso painel de controle intuitivo e eficiente.",
 };

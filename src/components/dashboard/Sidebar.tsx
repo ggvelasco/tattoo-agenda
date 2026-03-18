@@ -29,7 +29,7 @@ export default function Sidebar() {
     <aside className="fixed left-0 top-0 h-screen w-64 bg-zinc-900 border-r border-zinc-800 flex flex-col">
       <div className="p-6 border-b border-zinc-800">
         <span className="text-white font-bold text-lg tracking-tight">
-          GUSDEV INK STUDIO
+          Em desenvolvimento
         </span>
         <span className="text-zinc-500 text-xs block mt-1">
           Painel do estúdio
