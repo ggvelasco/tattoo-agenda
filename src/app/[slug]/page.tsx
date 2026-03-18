@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import SlugNavbarClient from "@/components/SlugNavbarClient";
 
 export default async function PerfilPublicoPage({
   params,
@@ -9,6 +10,18 @@ export default async function PerfilPublicoPage({
 }) {
   const { slug } = await params;
   const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const { data: perfilLogado } = user
+    ? await supabase
+        .from("profissionais")
+        .select("nome, foto_url, slug")
+        .eq("user_id", user.id)
+        .single()
+    : { data: null };
 
   const { data: perfil } = await supabase
     .from("profissionais")
@@ -154,34 +167,11 @@ export default async function PerfilPublicoPage({
         }
       `}</style>
 
-      <nav
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          padding: "20px 24px",
-          borderBottom: "1px solid rgba(255,255,255,0.05)",
-        }}
-      >
-        <span
-          className="font-display"
-          style={{
-            fontSize: "13px",
-            fontWeight: 700,
-            textTransform: "uppercase",
-            letterSpacing: "-.01em",
-          }}
-        >
-          TATTOO<span style={{ color: "#C5A059" }}>AGENDA</span>
-        </span>
-        <Link
-          href="/register"
-          className="btn-gold"
-          style={{ padding: "8px 20px", fontSize: "12px" }}
-        >
-          Criar minha página
-        </Link>
-      </nav>
+      <SlugNavbarClient
+        isLoggedIn={!!user}
+        nome={perfilLogado?.nome}
+        fotoUrl={perfilLogado?.foto_url || undefined}
+      />
 
       {/* HEADER */}
       <header
