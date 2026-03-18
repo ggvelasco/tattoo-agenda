@@ -154,6 +154,35 @@ export default async function PerfilPublicoPage({
         }
       `}</style>
 
+      <nav
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          padding: "20px 24px",
+          borderBottom: "1px solid rgba(255,255,255,0.05)",
+        }}
+      >
+        <span
+          className="font-display"
+          style={{
+            fontSize: "13px",
+            fontWeight: 700,
+            textTransform: "uppercase",
+            letterSpacing: "-.01em",
+          }}
+        >
+          TATTOO<span style={{ color: "#C5A059" }}>AGENDA</span>
+        </span>
+        <Link
+          href="/register"
+          className="btn-gold"
+          style={{ padding: "8px 20px", fontSize: "12px" }}
+        >
+          Criar minha página
+        </Link>
+      </nav>
+
       {/* HEADER */}
       <header
         style={{
