@@ -33,7 +33,9 @@ export default function AgendarPage() {
     undefined,
   );
   const [horarioSelecionado, setHorarioSelecionado] = useState<string>("");
-  const [slotsDisponiveis, setSlotsDisponiveis] = useState<string[]>([]);
+  const [slotsDisponiveis, setSlotsDisponiveis] = useState<
+    { hora: string; disponivel: boolean }[]
+  >([]);
   const [loading, setLoading] = useState(true);
   const [nomeCliente, setNomeCliente] = useState("");
   const [telefone, setTelefone] = useState("");
@@ -92,7 +94,7 @@ export default function AgendarPage() {
       .eq("profissional_id", profissional.id)
       .eq("data", dataStr)
       .in("status", ["pendente", "confirmado"]);
-    const slots: string[] = [];
+    const slots: { hora: string; disponivel: boolean }[] = [];
     const dur = servicoSelecionado.duracao_minutos;
     const toMin = (t: string) => {
       const [h, m] = t.split(":").map(Number);
@@ -102,6 +104,12 @@ export default function AgendarPage() {
       `${Math.floor(m / 60)
         .toString()
         .padStart(2, "0")}:${(m % 60).toString().padStart(2, "0")}`;
+
+    const dataHoje = new Date().toISOString().split("T")[0];
+    const isHoje = dataStr === dataHoje;
+    const agora = new Date();
+    const minutosAgora = agora.getHours() * 60 + agora.getMinutes();
+
     for (
       let a = toMin(disp.hora_inicio);
       a + dur <= toMin(disp.hora_fim);
@@ -110,7 +118,8 @@ export default function AgendarPage() {
       const busy = ags?.some(
         (ag) => a < toMin(ag.hora_fim) && a + dur > toMin(ag.hora_inicio),
       );
-      if (!busy) slots.push(toTime(a));
+      const jaPassou = isHoje && a < minutosAgora;
+      if (!jaPassou) slots.push({ hora: toTime(a), disponivel: !busy });
     }
     setSlotsDisponiveis(slots);
   }
@@ -710,11 +719,20 @@ export default function AgendarPage() {
                 >
                   {slotsDisponiveis.map((slot) => (
                     <button
-                      key={slot}
-                      onClick={() => setHorarioSelecionado(slot)}
-                      className={`slot-btn ${horarioSelecionado === slot ? "selected" : ""}`}
+                      key={slot.hora}
+                      onClick={() =>
+                        slot.disponivel && setHorarioSelecionado(slot.hora)
+                      }
+                      disabled={!slot.disponivel}
+                      className={`slot-btn ${
+                        !slot.disponivel
+                          ? "opacity-40 line-through cursor-not-allowed"
+                          : horarioSelecionado === slot.hora
+                            ? "selected"
+                            : ""
+                      }`}
                     >
-                      {slot}
+                      {slot.hora}
                     </button>
                   ))}
                 </div>
