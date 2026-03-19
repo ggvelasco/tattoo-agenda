@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { Unbounded, Inter } from "next/font/google";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Inter, Unbounded, Geist, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { Analytics } from "@vercel/analytics/next";
 
@@ -36,9 +35,13 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: " Tattooagenda — Gerencie seu estúdio de tatuagem com facilidade",
-  description:
-    "Gerencie seu estúdio de tatuagem com facilidade usando nosso painel de controle intuitivo e eficiente.",
+  title: " Tattooagenda",
+  description: "Sistema de agendamento para tatuadores",
+};
+
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
 };
 
 export default function RootLayout({
@@ -48,6 +51,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR" suppressHydrationWarning>
+      <head>
+        <link
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap"
+        />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${unbounded.variable} ${inter.variable} antialiased font-sans`}
       >
