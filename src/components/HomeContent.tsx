@@ -344,7 +344,7 @@ export default function HomePage() {
             transition={{ duration: 0.7, delay: 0.8, ease: [0.22, 1, 0.36, 1] }}
           >
             A plataforma feita exclusivamente para tatuadores profissionais.
-            Elimine a bagunça do DM, reduza no-shows e organize sua rotina de
+            Elimine a bagunça na DM, reduza no-shows e organize sua rotina de
             verdade.
           </motion.p>
 
