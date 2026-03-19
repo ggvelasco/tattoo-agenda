@@ -383,6 +383,8 @@ export default function HomePage() {
             flexDirection: "column",
             alignItems: "center",
             gap: "8px",
+            pointerEvents: "none",
+            zIndex: 0,
           }}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
