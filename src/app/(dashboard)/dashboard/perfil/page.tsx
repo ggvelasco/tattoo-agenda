@@ -10,6 +10,7 @@ type Perfil = {
   cidade: string;
   slug: string;
   foto_url: string;
+  whatsapp: string;
 };
 
 export default function PerfilPage() {
@@ -22,6 +23,7 @@ export default function PerfilPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [fotoUrl, setFotoUrl] = useState("");
+  const [whatsapp, setWhatsapp] = useState("");
 
   useEffect(() => {
     fetchProfile();
@@ -34,6 +36,7 @@ export default function PerfilPage() {
     setCidade(perfil.cidade || "");
     setSlug(perfil.slug || "");
     setFotoUrl(perfil.foto_url || "");
+    setWhatsapp(perfil.whatsapp || "");
   }
   async function salvar() {
     if (!perfilId) return;
@@ -42,7 +45,15 @@ export default function PerfilPage() {
     const supabase = createClient();
     await supabase
       .from("profissionais")
-      .update({ nome, bio, instagram, cidade, slug, foto_url: fotoUrl })
+      .update({
+        nome,
+        bio,
+        instagram,
+        cidade,
+        slug,
+        foto_url: fotoUrl,
+        whatsapp,
+      })
       .eq("id", perfilId);
 
     setSaving(false);
@@ -133,6 +144,21 @@ export default function PerfilPage() {
             placeholder="Digite seu Instagram..."
             className="w-full bg-background border border-border text-foreground px-3 py-2 text-sm rounded-md focus:outline-none focus:border-ring"
           />
+        </div>
+        <div>
+          <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-2">
+            WhatsApp
+          </label>
+          <input
+            type="text"
+            value={whatsapp}
+            onChange={(e) => setWhatsapp(e.target.value)}
+            placeholder="11999999999"
+            className="w-full bg-background border border-border text-foreground px-3 py-2 text-sm rounded-md focus:outline-none focus:border-ring"
+          />
+          <p className="text-xs text-muted-foreground mt-1">
+            Só números, com DDD. Ex: 11999999999
+          </p>
         </div>
         <div>
           <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-2">
