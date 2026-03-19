@@ -1,19 +1,22 @@
 import type { Metadata } from "next";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Unbounded, Inter } from "next/font/google";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { Analytics } from "@vercel/analytics/next";
 
 import "./globals.css";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const unbounded = Unbounded({
+  variable: "--font-unbounded",
   subsets: ["latin"],
+  weight: ["400", "700", "900"],
+  display: "swap",
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
+  weight: ["300", "400", "500", "600"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -30,7 +33,7 @@ export default function RootLayout({
   return (
     <html lang="pt-BR" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased font-sans`}
+        className={`${unbounded.variable} ${inter.variable} antialiased font-sans`}
       >
         <TooltipProvider>
           <ThemeProvider>

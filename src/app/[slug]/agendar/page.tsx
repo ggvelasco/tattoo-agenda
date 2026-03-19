@@ -217,7 +217,6 @@ export default function AgendarPage() {
         }}
       >
         <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Unbounded:wght@400;700;900&display=swap');
         @keyframes fadeUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
         @keyframes scaleIn { from { opacity:0; transform:scale(.7); } to { opacity:1; transform:scale(1); } }
         .done-icon { animation: scaleIn .4s cubic-bezier(.34,1.56,.64,1) both; }
@@ -296,7 +295,6 @@ export default function AgendarPage() {
       style={{ minHeight: "100vh", backgroundColor: "#0A0A0A", color: "white" }}
     >
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Unbounded:wght@400;700;900&display=swap');
         *, *::before, *::after { box-sizing: border-box; margin:0; padding:0; }
         html { scroll-behavior: smooth; }
         body { font-family:'Inter',sans-serif; -webkit-font-smoothing:antialiased; }
