@@ -105,10 +105,11 @@ export default function AgendarPage() {
         .toString()
         .padStart(2, "0")}:${(m % 60).toString().padStart(2, "0")}`;
 
-    const dataHoje = new Date().toISOString().split("T")[0];
-    const isHoje = dataStr === dataHoje;
     const agora = new Date();
+    const dataHoje = `${agora.getFullYear()}-${String(agora.getMonth() + 1).padStart(2, "0")}-${String(agora.getDate()).padStart(2, "0")}`;
+    const isHoje = dataStr === dataHoje;
     const minutosAgora = agora.getHours() * 60 + agora.getMinutes();
+    console.log("hora atual:", agora.getHours(), "minutos:", minutosAgora);
 
     for (
       let a = toMin(disp.hora_inicio);

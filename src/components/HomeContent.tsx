@@ -577,7 +577,7 @@ export default function HomePage() {
               {
                 n: "01",
                 title: "Crie sua conta",
-                desc: "Cadastre-se em menos de 2 minutos. Escolha seu slug e configure seu perfil público.",
+                desc: "Cadastre-se em menos de 2 minutos. Escolha seu usuário e configure seu perfil público.",
               },
               {
                 n: "02",

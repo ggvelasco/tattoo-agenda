@@ -2,6 +2,14 @@
 
 import { createClient } from "@/lib/supabase/client";
 import { useEffect, useState } from "react";
+import {
+  CheckCircle2,
+  XCircle,
+  Clock,
+  CalendarDays,
+  Phone,
+  Filter,
+} from "lucide-react";
 
 type Agendamento = {
   id: string;
@@ -14,9 +22,23 @@ type Agendamento = {
   servicos: { nome: string; duracao_minutos: number } | null;
 };
 
+const TABS = [
+  { key: "todos", label: "Todos" },
+  { key: "pendente", label: "Pendentes" },
+  { key: "confirmado", label: "Confirmados" },
+  { key: "cancelado", label: "Cancelados" },
+];
+
+const WA_ICON = (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+  </svg>
+);
+
 export default function AgendamentosPage() {
   const [agendamentos, setAgendamentos] = useState<Agendamento[]>([]);
   const [loading, setLoading] = useState(true);
+  const [tab, setTab] = useState("todos");
 
   async function fetchAgendamentos() {
     const supabase = createClient();
@@ -36,19 +58,17 @@ export default function AgendamentosPage() {
     const { data } = await supabase
       .from("agendamentos")
       .select(
-        `
-      *,
-      clientes(nome, telefone, email),
-      servicos(nome, duracao_minutos)
-    `,
+        `*, clientes(nome, telefone, email), servicos(nome, duracao_minutos)`,
       )
       .eq("profissional_id", perfil.id)
-      .order("status", { ascending: false })
       .order("data", { ascending: false })
+      .order("hora_inicio", { ascending: false })
       .limit(50);
+
     setAgendamentos(data || []);
     setLoading(false);
   }
+
   useEffect(() => {
     fetchAgendamentos();
   }, []);
@@ -61,90 +81,192 @@ export default function AgendamentosPage() {
 
   function formatarData(data: string, hora: string) {
     const date = new Date(data + "T12:00:00");
-
     const diaSemana = date.toLocaleDateString("pt-BR", { weekday: "long" });
     const dataFormatada = date.toLocaleDateString("pt-BR");
     const horaFormatada = hora.slice(0, 5).replace(":", "h");
-
-    return `${dataFormatada} - ${diaSemana.charAt(0).toUpperCase() + diaSemana.slice(1)} às ${horaFormatada}`;
+    return `${dataFormatada} · ${diaSemana.charAt(0).toUpperCase() + diaSemana.slice(1)} às ${horaFormatada}`;
   }
 
+  const filtrados =
+    tab === "todos"
+      ? agendamentos
+      : agendamentos.filter((ag) => ag.status === tab);
+
+  const contagem = (status: string) =>
+    status === "todos"
+      ? agendamentos.length
+      : agendamentos.filter((ag) => ag.status === status).length;
+
+  const statusConfig: Record<
+    string,
+    { label: string; icon: React.ReactNode; badge: string }
+  > = {
+    pendente: {
+      label: "Pendente",
+      icon: <Clock className="w-3.5 h-3.5" />,
+      badge: "bg-yellow-500/10 text-yellow-400 border border-yellow-500/20",
+    },
+    confirmado: {
+      label: "Confirmado",
+      icon: <CheckCircle2 className="w-3.5 h-3.5" />,
+      badge: "bg-green-500/10 text-green-400 border border-green-500/20",
+    },
+    cancelado: {
+      label: "Cancelado",
+      icon: <XCircle className="w-3.5 h-3.5" />,
+      badge: "bg-red-500/10 text-red-400 border border-red-500/20",
+    },
+    concluido: {
+      label: "Concluído",
+      icon: <CheckCircle2 className="w-3.5 h-3.5" />,
+      badge: "bg-blue-500/10 text-blue-400 border border-blue-500/20",
+    },
+  };
+
   return (
-    <div>
-      <h1 className="text-2xl font-bold text-foreground mb-6">Agendamentos</h1>
-      {loading && (
-        <p className="text-muted-foreground text-sm">Carregando...</p>
-      )}
-      {agendamentos.map((ag) => (
-        <div key={ag.id} className="border border-border p-4 rounded-lg mb-3">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-foreground font-medium">{ag.clientes?.nome}</p>
-              <p className="text-muted-foreground text-sm">
-                {ag.servicos?.nome}
-              </p>
-              <p className="text-muted-foreground text-sm">
-                {formatarData(ag.data, ag.hora_inicio)}
-              </p>
-
-              <p className="text-muted-foreground text-sm">
-                📱 {ag.clientes?.telefone}
-              </p>
-            </div>
-            <span
-              className={`text-xs px-2 py-1 rounded-full ${
-                ag.status === "confirmado"
-                  ? "bg-green-900 text-green-300"
-                  : ag.status === "cancelado"
-                    ? "bg-red-900 text-red-300"
-                    : "bg-yellow-900 text-yellow-300"
-              }`}
-            >
-              {ag.status}
-            </span>
-          </div>
-
-          {ag.status === "pendente" && (
-            <div className="flex gap-2 mt-3 pt-3 border-t border-border">
-              {/* botão whatsapp sempre visível */}
-
-              <a
-                href={`https://wa.me/55${ag.clientes?.telefone?.replace(/\D/g, "")}?text=${encodeURIComponent(`Olá ${ag.clientes?.nome}! Sobre sua sessão de ${ag.servicos?.nome} no dia ${formatarData(ag.data, ag.hora_inicio)}.`)}`}
-                target="_blank"
-                className="inline-flex items-center gap-2 text-xs font-medium text-green-400 hover:text-green-300 hover:bg-green-400/10 transition-all px-3 py-1.5 border border-green-400/20 rounded-full"
-              >
-                <svg
-                  width="14"
-                  height="14"
-                  viewBox="0 0 24 24"
-                  fill="currentColor"
-                >
-                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
-                </svg>
-                WhatsApp
-              </a>
-
-              {/* botões de confirmar/cancelar só pra pendentes */}
-              {ag.status === "pendente" && (
-                <>
-                  <button
-                    onClick={() => atualizarStatus(ag.id, "confirmado")}
-                    className="flex-1 bg-green-900 text-green-300 py-1.5 text-xs rounded-md hover:opacity-80 transition"
-                  >
-                    Confirmar
-                  </button>
-                  <button
-                    onClick={() => atualizarStatus(ag.id, "cancelado")}
-                    className="flex-1 bg-red-900/50 text-red-300 py-1.5 text-xs rounded-md hover:opacity-80 transition"
-                  >
-                    Cancelar
-                  </button>
-                </>
-              )}
-            </div>
-          )}
+    <div className="space-y-6 max-w-3xl">
+      {/* HEADER */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Agendamentos</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            {agendamentos.length} agendamento
+            {agendamentos.length !== 1 ? "s" : ""} no total
+          </p>
         </div>
-      ))}
+        <Filter className="w-4 h-4 text-muted-foreground" />
+      </div>
+
+      {/* TABS */}
+      <div className="grid grid-cols-2 sm:flex gap-1 bg-muted/50 p-1 rounded-lg">
+        {TABS.map((t) => (
+          <button
+            key={t.key}
+            onClick={() => setTab(t.key)}
+            className={`whitespace-nowrap px-3 py-1.5 text-xs font-medium rounded-md transition-all flex items-center justify-center gap-1.5 ${
+              tab === t.key
+                ? "bg-background text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {t.label}
+            {contagem(t.key) > 0 && (
+              <span
+                className={`text-[10px] px-1.5 py-0.5 rounded-full ${
+                  tab === t.key ? "bg-muted text-foreground" : "bg-muted/50"
+                }`}
+              >
+                {contagem(t.key)}
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {/* LISTA */}
+      {loading ? (
+        <div className="space-y-3">
+          {[1, 2, 3].map((i) => (
+            <div
+              key={i}
+              className="bg-card border border-border rounded-xl p-4 animate-pulse"
+            >
+              <div className="h-4 bg-muted rounded w-1/3 mb-2" />
+              <div className="h-3 bg-muted rounded w-1/2" />
+            </div>
+          ))}
+        </div>
+      ) : filtrados.length === 0 ? (
+        <div className="border border-dashed border-border rounded-xl p-12 text-center">
+          <CalendarDays className="w-8 h-8 text-muted-foreground mx-auto mb-3 opacity-40" />
+          <p className="text-sm text-muted-foreground">
+            {tab === "todos"
+              ? "Nenhum agendamento ainda."
+              : `Nenhum agendamento ${tab}.`}
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {filtrados.map((ag) => {
+            const cfg = statusConfig[ag.status] ?? statusConfig.pendente;
+            return (
+              <div
+                key={ag.id}
+                className="bg-card border border-border rounded-xl p-4 hover:border-border/80 transition-colors"
+              >
+                <div className="flex items-start justify-between gap-4">
+                  {/* INFO PRINCIPAL */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap mb-1">
+                      <p className="font-semibold text-foreground text-sm">
+                        {ag.clientes?.nome}
+                      </p>
+                      <span
+                        className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium ${cfg.badge}`}
+                      >
+                        {cfg.icon}
+                        {cfg.label}
+                      </span>
+                    </div>
+
+                    <p className="text-xs text-muted-foreground mb-1">
+                      {ag.servicos?.nome} · {ag.servicos?.duracao_minutos}min
+                      {ag.valor ? ` · R$ ${Number(ag.valor).toFixed(0)}` : ""}
+                    </p>
+
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <span className="text-xs text-muted-foreground flex items-center gap-1">
+                        <CalendarDays className="w-3 h-3" />
+                        {formatarData(ag.data, ag.hora_inicio)}
+                      </span>
+                      {ag.clientes?.telefone && (
+                        <span className="text-xs text-muted-foreground flex items-center gap-1">
+                          <Phone className="w-3 h-3" />
+                          {ag.clientes.telefone}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* AÇÕES */}
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    {ag.clientes?.telefone && (
+                      <a
+                        href={`https://wa.me/55${ag.clientes.telefone.replace(/\D/g, "")}?text=${encodeURIComponent(`Olá ${ag.clientes.nome}! Sobre sua sessão de ${ag.servicos?.nome} no dia ${formatarData(ag.data, ag.hora_inicio)}.`)}`}
+                        target="_blank"
+                        className="w-8 h-8 rounded-lg bg-green-500/10 flex items-center justify-center text-green-400 hover:bg-green-500/20 transition-colors"
+                        title="Chamar no WhatsApp"
+                      >
+                        {WA_ICON}
+                      </a>
+                    )}
+                  </div>
+                </div>
+
+                {/* AÇÕES DE STATUS — só pra pendentes */}
+                {ag.status === "pendente" && (
+                  <div className="flex gap-2 mt-3 pt-3 border-t border-border">
+                    <button
+                      onClick={() => atualizarStatus(ag.id, "confirmado")}
+                      className="flex-1 flex items-center justify-center gap-1.5 bg-green-500/10 text-green-400 hover:bg-green-500/20 border border-green-500/20 py-2 text-xs font-medium rounded-lg transition-colors"
+                    >
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      Confirmar
+                    </button>
+                    <button
+                      onClick={() => atualizarStatus(ag.id, "cancelado")}
+                      className="flex-1 flex items-center justify-center gap-1.5 bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/20 py-2 text-xs font-medium rounded-lg transition-colors"
+                    >
+                      <XCircle className="w-3.5 h-3.5" />
+                      Cancelar
+                    </button>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

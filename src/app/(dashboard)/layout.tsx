@@ -30,6 +30,7 @@ export default async function DashboardLayout({
         </header>
         <main className="flex-1 p-6">{children}</main>
       </SidebarInset>
+
       <SidebarRightWrapper />
     </SidebarProvider>
   );
