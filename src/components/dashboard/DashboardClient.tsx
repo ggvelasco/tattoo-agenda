@@ -20,6 +20,9 @@ type Agendamento = {
 type Props = {
   agendamentosHoje: Agendamento[];
   totalProximas: number;
+  totalHoje: number;
+  confirmadosHoje: number;
+  totalPendentes: number;
 };
 
 const WA_SVG = (size = 14) => (
@@ -31,8 +34,10 @@ const WA_SVG = (size = 14) => (
 export default function DashboardClient({
   agendamentosHoje,
   totalProximas,
+  totalHoje,
+  confirmadosHoje,
+  totalPendentes,
 }: Props) {
-  // horário do BROWSER — resolve o problema de fuso horário
   const agora = new Date();
   const horaAtual = agora.getHours() * 60 + agora.getMinutes();
 
@@ -48,7 +53,6 @@ export default function DashboardClient({
     const bMin = bh * 60 + bm;
     const aPassou = aMin < horaAtual;
     const bPassou = bMin < horaAtual;
-
     if (aPassou && !bPassou) return 1;
     if (!aPassou && bPassou) return -1;
     return aMin - bMin;
@@ -56,8 +60,40 @@ export default function DashboardClient({
 
   return (
     <div className="space-y-8">
-      {/* CARDS DINÂMICOS */}
-      <div className="grid grid-cols-2 gap-4">
+      {/* 4 CARDS NA MESMA LINHA */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* SESSÕES HOJE */}
+        <div className="bg-card border border-border rounded-xl p-5 space-y-3">
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
+              Sessões hoje
+            </p>
+            <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center">
+              <CalendarDays className="w-4 h-4 text-blue-400" />
+            </div>
+          </div>
+          <p className="text-3xl font-bold text-foreground">{totalHoje}</p>
+          <p className="text-xs text-muted-foreground">
+            {confirmadosHoje} confirmado{confirmadosHoje !== 1 ? "s" : ""}
+          </p>
+        </div>
+
+        {/* PENDENTES */}
+        <div className="bg-card border border-border rounded-xl p-5 space-y-3">
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
+              Pendentes
+            </p>
+            <div className="w-8 h-8 rounded-lg bg-yellow-500/10 flex items-center justify-center">
+              <AlertCircle className="w-4 h-4 text-yellow-400" />
+            </div>
+          </div>
+          <p className="text-3xl font-bold text-foreground">{totalPendentes}</p>
+          <p className="text-xs text-muted-foreground">
+            Aguardando confirmação
+          </p>
+        </div>
+
         {/* PRÓXIMO */}
         <div className="bg-card border border-border rounded-xl p-5 space-y-3">
           <div className="flex items-center justify-between">
@@ -89,7 +125,7 @@ export default function DashboardClient({
           )}
         </div>
 
-        {/* PRÓXIMAS SESSÕES */}
+        {/* PRÓXIMAS */}
         <div className="bg-card border border-border rounded-xl p-5 space-y-3">
           <div className="flex items-center justify-between">
             <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
@@ -112,13 +148,13 @@ export default function DashboardClient({
           </h2>
           {agendamentosHoje.length > 0 && (
             <span className="text-xs text-muted-foreground">
-              {agendamentosHoje.length} sessão
-              {agendamentosHoje.length !== 1 ? "ões" : ""}
+              {agendamentosHoje.length}{" "}
+              {agendamentosHoje.length === 1 ? "sessão" : "sessões"}
             </span>
           )}
         </div>
 
-        {agendamentosHoje.length > 0 ? (
+        {agendamentosOrdenados.length > 0 ? (
           <div className="space-y-3">
             {agendamentosOrdenados.map((ag) => {
               const [h, m] = ag.hora_inicio.split(":").map(Number);

@@ -1,5 +1,4 @@
 import { createClient } from "@/lib/supabase/server";
-import { CalendarDays, AlertCircle } from "lucide-react";
 import DashboardClient from "@/components/dashboard/DashboardClient";
 
 export default async function DashboardPage() {
@@ -50,7 +49,6 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-8">
-      {/* HEADER */}
       <div>
         <h1 className="text-2xl font-bold text-foreground">
           {saudacao}, {perfil.nome.split(" ")[0]} 👋
@@ -64,47 +62,12 @@ export default async function DashboardPage() {
         </p>
       </div>
 
-      {/* CARDS ESTÁTICOS */}
-      <div className="grid grid-cols-2 gap-4">
-        <div className="bg-card border border-border rounded-xl p-5 space-y-3">
-          <div className="flex items-center justify-between">
-            <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
-              Sessões hoje
-            </p>
-            <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center">
-              <CalendarDays className="w-4 h-4 text-blue-400" />
-            </div>
-          </div>
-          <p className="text-3xl font-bold text-foreground">
-            {agendamentosHoje?.length ?? 0}
-          </p>
-          <p className="text-xs text-muted-foreground">
-            {confirmadosHoje} confirmado{confirmadosHoje !== 1 ? "s" : ""}
-          </p>
-        </div>
-
-        <div className="bg-card border border-border rounded-xl p-5 space-y-3">
-          <div className="flex items-center justify-between">
-            <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
-              Pendentes
-            </p>
-            <div className="w-8 h-8 rounded-lg bg-yellow-500/10 flex items-center justify-center">
-              <AlertCircle className="w-4 h-4 text-yellow-400" />
-            </div>
-          </div>
-          <p className="text-3xl font-bold text-foreground">
-            {pendentes?.length ?? 0}
-          </p>
-          <p className="text-xs text-muted-foreground">
-            Aguardando confirmação
-          </p>
-        </div>
-      </div>
-
-      {/* CARDS DINÂMICOS + LISTA — dependem do horário do browser */}
       <DashboardClient
         agendamentosHoje={agendamentosHoje || []}
         totalProximas={semana?.length ?? 0}
+        totalHoje={agendamentosHoje?.length ?? 0}
+        confirmadosHoje={confirmadosHoje}
+        totalPendentes={pendentes?.length ?? 0}
       />
     </div>
   );
