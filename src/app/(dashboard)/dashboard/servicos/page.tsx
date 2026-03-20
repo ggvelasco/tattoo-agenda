@@ -34,6 +34,16 @@ import {
   useSortable,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { CSS } from "@dnd-kit/utilities";
 
 type Servico = {
@@ -157,6 +167,7 @@ export default function ServicosPage() {
   const [preco, setPreco] = useState("");
   const [tipoPreco, setTipoPreco] = useState("fixo");
   const [saving, setSaving] = useState(false);
+  const [deletandoId, setDeletandoId] = useState<string | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -185,6 +196,7 @@ export default function ServicosPage() {
       .from("servicos")
       .select("*")
       .eq("profissional_id", perfil.id)
+      .eq("ativo", true)
       .order("ordem", { ascending: true });
 
     setServicos(data || []);
@@ -280,10 +292,14 @@ export default function ServicosPage() {
     setSaving(false);
   }
 
-  async function deletar(id: string) {
-    if (!confirm("Tem certeza que deseja remover este serviço?")) return;
+  async function confirmarDelete() {
+    if (!deletandoId) return;
     const supabase = createClient();
-    await supabase.from("servicos").delete().eq("id", id);
+    await supabase
+      .from("servicos")
+      .update({ ativo: false })
+      .eq("id", deletandoId);
+    setDeletandoId(null);
     await fetchServicos();
   }
 
@@ -472,7 +488,7 @@ export default function ServicosPage() {
                   key={s.id}
                   s={s}
                   onEditar={abrirModal}
-                  onDeletar={deletar}
+                  onDeletar={setDeletandoId}
                 />
               ))}
             </div>
@@ -486,6 +502,29 @@ export default function ServicosPage() {
           Arraste pelo ícone para reordenar
         </p>
       )}
+      <AlertDialog
+        open={!!deletandoId}
+        onOpenChange={(open) => !open && setDeletandoId(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remover serviço</AlertDialogTitle>
+            <AlertDialogDescription>
+              Este serviço será removido da sua página pública. Agendamentos
+              existentes não serão afetados.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmarDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Remover
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
