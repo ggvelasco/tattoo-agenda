@@ -17,17 +17,21 @@ export default async function DashboardPage() {
 
   if (!perfil) return null;
 
-  const agora = new Date();
-  const hoje = `${agora.getFullYear()}-${String(agora.getMonth() + 1).padStart(2, "0")}-${String(agora.getDate()).padStart(2, "0")}`;
-  const hora = agora.getHours();
-  const saudacao =
-    hora < 12 ? "Bom dia" : hora < 18 ? "Boa tarde" : "Boa noite";
+  // busca agendamentos dos próximos 2 dias pra cobrir virada de dia no cliente
+  // o DashboardClient vai filtrar pelo dia correto usando o horário do browser
+  const hoje = new Date();
+  const amanha = new Date(hoje);
+  amanha.setDate(amanha.getDate() + 1);
 
-  const { data: agendamentosHoje } = await supabase
+  const dataHojeUTC = hoje.toISOString().split("T")[0];
+  const dataAmanhaUTC = amanha.toISOString().split("T")[0];
+
+  // busca agendamentos dos dois dias possíveis
+  const { data: agendamentosRaw } = await supabase
     .from("agendamentos")
     .select(`*, clientes(nome, telefone), servicos(nome, duracao_minutos)`)
     .eq("profissional_id", perfil.id)
-    .eq("data", hoje)
+    .in("data", [dataHojeUTC, dataAmanhaUTC])
     .in("status", ["pendente", "confirmado"])
     .order("hora_inicio", { ascending: true });
 
@@ -37,38 +41,20 @@ export default async function DashboardPage() {
     .eq("profissional_id", perfil.id)
     .eq("status", "pendente");
 
+  // para "próximas sessões" usamos data >= hoje UTC (pode ter 1 dia de diferença mas é aceitável)
   const { data: semana } = await supabase
     .from("agendamentos")
     .select("id")
     .eq("profissional_id", perfil.id)
     .in("status", ["pendente", "confirmado"])
-    .gte("data", hoje);
-
-  const confirmadosHoje =
-    agendamentosHoje?.filter((ag) => ag.status === "confirmado").length ?? 0;
+    .gte("data", dataHojeUTC);
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">
-          {saudacao}, {perfil.nome.split(" ")[0]} 👋
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          {agora.toLocaleDateString("pt-BR", {
-            weekday: "long",
-            day: "numeric",
-            month: "long",
-          })}
-        </p>
-      </div>
-
-      <DashboardClient
-        agendamentosHoje={agendamentosHoje || []}
-        totalProximas={semana?.length ?? 0}
-        totalHoje={agendamentosHoje?.length ?? 0}
-        confirmadosHoje={confirmadosHoje}
-        totalPendentes={pendentes?.length ?? 0}
-      />
-    </div>
+    <DashboardClient
+      nomeUsuario={perfil.nome.split(" ")[0]}
+      agendamentosRaw={agendamentosRaw || []}
+      totalPendentes={pendentes?.length ?? 0}
+      totalProximas={semana?.length ?? 0}
+    />
   );
 }

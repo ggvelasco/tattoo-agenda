@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import {
   CalendarDays,
   Clock,
@@ -11,6 +12,7 @@ import {
 
 type Agendamento = {
   id: string;
+  data: string;
   hora_inicio: string;
   status: string;
   clientes: { nome: string; telefone: string } | null;
@@ -18,11 +20,10 @@ type Agendamento = {
 };
 
 type Props = {
-  agendamentosHoje: Agendamento[];
-  totalProximas: number;
-  totalHoje: number;
-  confirmadosHoje: number;
+  nomeUsuario: string;
+  agendamentosRaw: Agendamento[];
   totalPendentes: number;
+  totalProximas: number;
 };
 
 const WA_SVG = (size = 14) => (
@@ -32,35 +33,71 @@ const WA_SVG = (size = 14) => (
 );
 
 export default function DashboardClient({
-  agendamentosHoje,
-  totalProximas,
-  totalHoje,
-  confirmadosHoje,
+  nomeUsuario,
+  agendamentosRaw,
   totalPendentes,
+  totalProximas,
 }: Props) {
+  // tudo calculado com o horário do BROWSER
   const agora = new Date();
   const horaAtual = agora.getHours() * 60 + agora.getMinutes();
+  const hora = agora.getHours();
+
+  // saudação baseada na hora local do browser
+  const saudacao =
+    hora < 12 ? "Bom dia" : hora < 18 ? "Boa tarde" : "Boa noite";
+
+  // data local do browser
+  const hoje = `${agora.getFullYear()}-${String(agora.getMonth() + 1).padStart(2, "0")}-${String(agora.getDate()).padStart(2, "0")}`;
+
+  // filtra só os agendamentos do dia atual do browser
+  const agendamentosHoje = useMemo(
+    () => agendamentosRaw.filter((ag) => ag.data === hoje),
+    [agendamentosRaw, hoje],
+  );
+
+  const confirmadosHoje = agendamentosHoje.filter(
+    (ag) => ag.status === "confirmado",
+  ).length;
 
   const proximoCliente = agendamentosHoje.find((ag) => {
     const [h, m] = ag.hora_inicio.split(":").map(Number);
     return h * 60 + m >= horaAtual;
   });
 
-  const agendamentosOrdenados = [...agendamentosHoje].sort((a, b) => {
-    const [ah, am] = a.hora_inicio.split(":").map(Number);
-    const [bh, bm] = b.hora_inicio.split(":").map(Number);
-    const aMin = ah * 60 + am;
-    const bMin = bh * 60 + bm;
-    const aPassou = aMin < horaAtual;
-    const bPassou = bMin < horaAtual;
-    if (aPassou && !bPassou) return 1;
-    if (!aPassou && bPassou) return -1;
-    return aMin - bMin;
-  });
+  const agendamentosOrdenados = useMemo(
+    () =>
+      [...agendamentosHoje].sort((a, b) => {
+        const [ah, am] = a.hora_inicio.split(":").map(Number);
+        const [bh, bm] = b.hora_inicio.split(":").map(Number);
+        const aMin = ah * 60 + am;
+        const bMin = bh * 60 + bm;
+        const aPassou = aMin < horaAtual;
+        const bPassou = bMin < horaAtual;
+        if (aPassou && !bPassou) return 1;
+        if (!aPassou && bPassou) return -1;
+        return aMin - bMin;
+      }),
+    [agendamentosHoje, horaAtual],
+  );
 
   return (
     <div className="space-y-8">
-      {/* 4 CARDS NA MESMA LINHA */}
+      {/* HEADER */}
+      <div>
+        <h1 className="text-2xl font-bold text-foreground">
+          {saudacao}, {nomeUsuario} 👋
+        </h1>
+        <p className="text-sm text-muted-foreground mt-1">
+          {agora.toLocaleDateString("pt-BR", {
+            weekday: "long",
+            day: "numeric",
+            month: "long",
+          })}
+        </p>
+      </div>
+
+      {/* 4 CARDS */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {/* SESSÕES HOJE */}
         <div className="bg-card border border-border rounded-xl p-5 space-y-3">
@@ -72,7 +109,9 @@ export default function DashboardClient({
               <CalendarDays className="w-4 h-4 text-blue-400" />
             </div>
           </div>
-          <p className="text-3xl font-bold text-foreground">{totalHoje}</p>
+          <p className="text-3xl font-bold text-foreground">
+            {agendamentosHoje.length}
+          </p>
           <p className="text-xs text-muted-foreground">
             {confirmadosHoje} confirmado{confirmadosHoje !== 1 ? "s" : ""}
           </p>
