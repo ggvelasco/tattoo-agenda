@@ -115,6 +115,12 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+  --public-bg: #0a0a0a;
+  --public-surface: #111111;
+  --public-border: #222222;
+  --public-text: #ebebeb;
+  --public-text-muted: #6b7280;
+  --public-text-dim: #444444;
 }
 
 @layer base {
@@ -130,7 +136,8 @@
   }
 }
 
-::view-transition-old(root), ::view-transition-new(root) {
-    animation: none;
-    mix-blend-mode: normal;
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
 }

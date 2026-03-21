@@ -6,6 +6,8 @@ import { createClient } from "@/lib/supabase/client";
 import { Calendar } from "@/components/ui/calendar";
 import { ptBR } from "date-fns/locale";
 import Link from "next/link";
+import { toast } from "sonner";
+import { Toaster } from "sonner";
 
 type Servico = {
   id: string;
@@ -42,6 +44,12 @@ export default function AgendarPage() {
   const [email, setEmail] = useState("");
   const [salvando, setSalvando] = useState(false);
   const [concluido, setConcluido] = useState(false);
+  const [localCorpo, setLocalCorpo] = useState("");
+  const [referenciaFile, setReferenciaFile] = useState<File | null>(null);
+  const [referenciaPreview, setReferenciaPreview] = useState<string | null>(
+    null,
+  );
+  const [uploadando, setUploadando] = useState(false);
 
   useEffect(() => {
     fetchDados();
@@ -104,13 +112,10 @@ export default function AgendarPage() {
       `${Math.floor(m / 60)
         .toString()
         .padStart(2, "0")}:${(m % 60).toString().padStart(2, "0")}`;
-
     const agora = new Date();
     const dataHoje = `${agora.getFullYear()}-${String(agora.getMonth() + 1).padStart(2, "0")}-${String(agora.getDate()).padStart(2, "0")}`;
     const isHoje = dataStr === dataHoje;
     const minutosAgora = agora.getHours() * 60 + agora.getMinutes();
-    console.log("hora atual:", agora.getHours(), "minutos:", minutosAgora);
-
     for (
       let a = toMin(disp.hora_inicio);
       a + dur <= toMin(disp.hora_fim);
@@ -125,6 +130,33 @@ export default function AgendarPage() {
     setSlotsDisponiveis(slots);
   }
 
+  function handleReferenciaChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // valida tipo
+    const tiposPermitidos = ["image/jpeg", "image/png", "image/webp"];
+    if (!tiposPermitidos.includes(file.type)) {
+      toast.error("Formato não suportado", {
+        description: "Apenas imagens JPG, PNG ou WEBP são permitidas.",
+      });
+      return;
+    }
+
+    // valida tamanho — máximo 5MB
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Imagem muito grande", {
+        description: "A imagem deve ter no máximo 5MB.",
+      });
+      return;
+    }
+
+    setReferenciaFile(file);
+    const reader = new FileReader();
+    reader.onload = () => setReferenciaPreview(reader.result as string);
+    reader.readAsDataURL(file);
+  }
+
   async function confirmarAgendamento() {
     if (
       !profissional ||
@@ -134,14 +166,30 @@ export default function AgendarPage() {
     )
       return;
     setSalvando(true);
-
     const [h, m] = horarioSelecionado.split(":").map(Number);
     const fimMin = h * 60 + m + servicoSelecionado.duracao_minutos;
     const horaFim = `${Math.floor(fimMin / 60)
       .toString()
       .padStart(2, "0")}:${(fimMin % 60).toString().padStart(2, "0")}`;
 
-    // cria cliente e agendamento no servidor (seguro)
+    let referenciaUrl = null;
+    if (referenciaFile) {
+      setUploadando(true);
+      const supabase = createClient();
+      const ext = referenciaFile.name.split(".").pop();
+      const fileName = `${profissional.id}-${Date.now()}.${ext}`;
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from("referencias")
+        .upload(fileName, referenciaFile);
+      if (!uploadError && uploadData) {
+        const { data: urlData } = supabase.storage
+          .from("referencias")
+          .getPublicUrl(uploadData.path);
+        referenciaUrl = urlData.publicUrl;
+      }
+      setUploadando(false);
+    }
+
     const res = await fetch("/api/agendamentos", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -155,6 +203,8 @@ export default function AgendarPage() {
         nome: nomeCliente,
         telefone,
         email,
+        local_corpo: localCorpo,
+        referencia_url: referenciaUrl,
       }),
     });
 
@@ -163,14 +213,12 @@ export default function AgendarPage() {
       return;
     }
 
-    // envia email
     const supabase = createClient();
     const { data: perfilCompleto } = await supabase
       .from("profissionais")
       .select("nome, email")
       .eq("id", profissional.id)
       .single();
-
     await fetch("/api/notificacoes/email", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -202,10 +250,10 @@ export default function AgendarPage() {
       >
         <div
           style={{
-            width: "28px",
-            height: "28px",
+            width: "24px",
+            height: "24px",
             border: "2px solid #2a2a2a",
-            borderTopColor: "#C5A059",
+            borderTopColor: "#9ca3af",
             borderRadius: "9999px",
             animation: "spin .7s linear infinite",
           }}
@@ -238,17 +286,17 @@ export default function AgendarPage() {
           <div
             className="done-icon"
             style={{
-              width: "72px",
-              height: "72px",
+              width: "64px",
+              height: "64px",
               borderRadius: "9999px",
-              border: "2px solid rgba(197,160,89,0.4)",
-              backgroundColor: "rgba(197,160,89,0.08)",
+              border: "1px solid rgba(255,255,255,0.12)",
+              backgroundColor: "rgba(255,255,255,0.04)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               margin: "0 auto 24px",
-              fontSize: "28px",
-              color: "#C5A059",
+              fontSize: "22px",
+              color: "#e5e7eb",
             }}
           >
             ✓
@@ -257,10 +305,10 @@ export default function AgendarPage() {
             className="done-text"
             style={{
               fontFamily: "'Unbounded', serif",
-              fontSize: "22px",
+              fontSize: "20px",
               fontWeight: 900,
               textTransform: "uppercase",
-              color: "white",
+              color: "#e5e7eb",
               marginBottom: "12px",
             }}
           >
@@ -269,7 +317,7 @@ export default function AgendarPage() {
           <p
             className="done-sub"
             style={{
-              color: "#9ca3af",
+              color: "#6b7280",
               fontSize: "14px",
               lineHeight: "1.7",
               marginBottom: "32px",
@@ -284,13 +332,12 @@ export default function AgendarPage() {
             href={`/${slug}`}
             className="done-link"
             style={{
-              color: "#6b7280",
-              fontSize: "12px",
+              color: "#4b5563",
+              fontSize: "11px",
               textTransform: "uppercase",
               letterSpacing: ".12em",
               textDecoration: "none",
               fontFamily: "'Inter', sans-serif",
-              transition: "color .2s",
               display: "inline-block",
             }}
           >
@@ -304,84 +351,85 @@ export default function AgendarPage() {
     <div
       style={{ minHeight: "100vh", backgroundColor: "#0A0A0A", color: "white" }}
     >
+      <Toaster theme="system" position="top-center" />
       <style>{`
         *, *::before, *::after { box-sizing: border-box; margin:0; padding:0; }
-        html { scroll-behavior: smooth; }
         body { font-family:'Inter',sans-serif; -webkit-font-smoothing:antialiased; }
         .font-display { font-family:'Unbounded',serif; }
 
         @keyframes fadeUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
-        .fade-in { animation: fadeUp .45s ease both; }
+        .fade-in   { animation: fadeUp .45s ease both; }
         .fade-in-2 { animation: fadeUp .45s .08s ease both; }
         .fade-in-3 { animation: fadeUp .45s .16s ease both; }
 
-        /* PROGRESS STEP */
         .step-circle {
           width:28px; height:28px; border-radius:9999px;
           display:flex; align-items:center; justify-content:center;
-          font-size:12px; font-weight:700; font-family:'Unbounded',serif;
+          font-size:11px; font-weight:700; font-family:'Unbounded',serif;
           transition: all .3s ease;
         }
-        .step-done { background:#C5A059; color:#0A0A0A; }
-        .step-active { background:#1A1A1A; color:white; border:2px solid #C5A059; }
-        .step-idle { background:#111; color:#444; border:2px solid #222; }
+        .step-done   { background:#e5e7eb; color:#0A0A0A; }
+        .step-active { background:#1c1c1c; color:#e5e7eb; border:1.5px solid #e5e7eb; }
+        .step-idle   { background:#141414; color:#4b5563; border:1.5px solid #262626; }
 
-        /* SERVICE OPTION */
         .service-opt {
           width:100%; text-align:left; padding:20px;
-          border-radius:14px; border:1px solid rgba(255,255,255,0.06);
-          background:#1A1A1A; cursor:pointer;
-          transition: border-color .2s, transform .2s, box-shadow .2s;
+          border-radius:14px; border:1px solid #222;
+          background:#141414; cursor:pointer;
+          transition: border-color .2s, background .2s, transform .2s, box-shadow .2s;
           display:block;
         }
-        .service-opt:hover { border-color:rgba(197,160,89,0.3); transform:translateY(-2px); box-shadow:0 8px 24px rgba(0,0,0,0.4); }
-        .service-opt.selected { border-color:#C5A059; background:rgba(197,160,89,0.05); }
+        .service-opt:hover { border-color:#3a3a3a; background:#181818; transform:translateY(-1px); box-shadow:0 8px 24px rgba(0,0,0,0.35); }
+        .service-opt.selected { border-color:#9ca3af; background:#1a1a1a; }
 
-        /* SLOT */
         .slot-btn {
           padding:10px 0; border-radius:10px;
-          font-size:12px; font-weight:700; letter-spacing:.04em;
-          border:1px solid #222; background:#1A1A1A; color:#666;
+          font-size:12px; font-weight:600; letter-spacing:.03em;
+          border:1px solid #222; background:#141414; color:#6b7280;
           cursor:pointer; transition: all .2s;
           font-family:'Inter',sans-serif;
         }
-        .slot-btn:hover { border-color:rgba(197,160,89,0.4); color:#C5A059; }
-        .slot-btn.selected { border-color:#C5A059; background:rgba(197,160,89,0.1); color:#C5A059; }
+        .slot-btn:hover:not(:disabled) { border-color:#6b7280; color:#e5e7eb; background:#1c1c1c; }
+        .slot-btn.selected { border-color:#e5e7eb; background:#1c1c1c; color:#e5e7eb; }
 
-        /* INPUTS */
         .field-input {
-          width:100%; background:#111; border:1px solid #222;
-          color:white; font-size:14px; padding:14px 16px;
+          width:100%; background:#141414; border:1px solid #2a2a2a;
+          color:#e5e7eb; font-size:14px; padding:13px 16px;
           border-radius:12px; font-family:'Inter',sans-serif;
-          transition: border-color .2s; outline:none;
+          font-weight:300; transition: border-color .2s, background .2s; outline:none;
         }
-        .field-input:focus { border-color:rgba(197,160,89,0.5); }
-        .field-input::placeholder { color:#444; }
+        .field-input:focus { border-color:#6b7280; background:#181818; }
+        .field-input::placeholder { color:#4b5563; }
 
-        /* BTNS */
         .btn-primary {
           flex:1; padding:14px; border-radius:9999px;
-          background:#C5A059; color:#0A0A0A;
-          font-size:12px; font-weight:700;
+          background:#e5e7eb; color:#0A0A0A;
+          font-size:11px; font-weight:700;
           text-transform:uppercase; letter-spacing:.12em;
           border:none; cursor:pointer; font-family:'Inter',sans-serif;
           transition: background .2s, transform .15s, box-shadow .2s;
         }
-        .btn-primary:hover { background:white; transform:translateY(-1px); box-shadow:0 6px 16px rgba(197,160,89,0.3); }
-        .btn-primary:disabled { opacity:.3; cursor:not-allowed; transform:none; box-shadow:none; }
+        .btn-primary:hover { background:white; transform:translateY(-1px); box-shadow:0 8px 20px rgba(255,255,255,0.1); }
+        .btn-primary:disabled { opacity:.35; cursor:not-allowed; transform:none; box-shadow:none; }
 
         .btn-secondary {
           flex:1; padding:14px; border-radius:9999px;
-          background:transparent; color:#666;
-          font-size:12px; font-weight:700;
+          background:transparent; color:#6b7280;
+          font-size:11px; font-weight:700;
           text-transform:uppercase; letter-spacing:.12em;
           border:1px solid #2a2a2a; cursor:pointer; font-family:'Inter',sans-serif;
           transition: border-color .2s, color .2s;
         }
-        .btn-secondary:hover { border-color:#444; color:white; }
+        .btn-secondary:hover { border-color:#6b7280; color:#e5e7eb; }
 
-        /* CALENDAR OVERRIDES */
-        .rdp { --rdp-accent-color: #C5A059 !important; --rdp-background-color: rgba(197,160,89,0.1) !important; }
+        .rdp { --rdp-accent-color:#e5e7eb !important; --rdp-background-color:rgba(255,255,255,0.06) !important; }
+
+        .upload-area {
+          border:1px dashed #2a2a2a; border-radius:12px; padding:32px;
+          text-align:center; cursor:pointer;
+          transition: border-color .2s, background .2s;
+        }
+        .upload-area:hover { border-color:#4b5563; background:#141414; }
       `}</style>
 
       {/* NAV */}
@@ -391,13 +439,13 @@ export default function AgendarPage() {
           alignItems: "center",
           justifyContent: "space-between",
           padding: "20px 24px",
-          borderBottom: "1px solid rgba(255,255,255,0.05)",
+          borderBottom: "1px solid #141414",
         }}
       >
         <Link
           href={`/${slug}`}
           style={{
-            color: "#666",
+            color: "#6b7280",
             fontSize: "12px",
             textTransform: "uppercase",
             letterSpacing: ".1em",
@@ -405,8 +453,8 @@ export default function AgendarPage() {
             fontFamily: "'Inter',sans-serif",
             transition: "color .2s",
           }}
-          onMouseEnter={(e) => (e.currentTarget.style.color = "white")}
-          onMouseLeave={(e) => (e.currentTarget.style.color = "#666")}
+          onMouseEnter={(e) => (e.currentTarget.style.color = "#e5e7eb")}
+          onMouseLeave={(e) => (e.currentTarget.style.color = "#6b7280")}
         >
           ← {profissional?.nome}
         </Link>
@@ -417,9 +465,10 @@ export default function AgendarPage() {
             fontWeight: 700,
             textTransform: "uppercase",
             letterSpacing: "-.01em",
+            color: "#e5e7eb",
           }}
         >
-          TATTOO<span style={{ color: "#C5A059" }}>AGENDA</span>
+          TATTOOAGENDA
         </span>
       </nav>
 
@@ -427,12 +476,12 @@ export default function AgendarPage() {
         style={{
           maxWidth: "560px",
           margin: "0 auto",
-          padding: "40px 24px 60px",
+          padding: "40px 24px 80px",
         }}
       >
         {/* PROGRESS */}
         <div className="fade-in" style={{ marginBottom: "40px" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "0" }}>
+          <div style={{ display: "flex", alignItems: "center" }}>
             {STEPS.map((label, i) => (
               <div
                 key={i}
@@ -458,16 +507,13 @@ export default function AgendarPage() {
                   <span
                     style={{
                       fontSize: "11px",
-                      fontFamily: "'Inter',sans-serif",
                       color:
                         step === i + 1
-                          ? "white"
+                          ? "#e5e7eb"
                           : step > i + 1
-                            ? "#666"
-                            : "#333",
-                      display: "none",
+                            ? "#6b7280"
+                            : "#374151",
                     }}
-                    className="sm-show"
                   >
                     {label}
                   </span>
@@ -478,7 +524,7 @@ export default function AgendarPage() {
                       flex: 1,
                       height: "1px",
                       margin: "0 12px",
-                      background: step > i + 1 ? "#C5A059" : "#222",
+                      background: step > i + 1 ? "#6b7280" : "#222",
                       transition: "background .4s",
                     }}
                   />
@@ -488,7 +534,7 @@ export default function AgendarPage() {
           </div>
         </div>
 
-        {/* STEP 1 */}
+        {/* STEP 1 — SERVIÇO */}
         {step === 1 && (
           <div>
             <h2
@@ -498,6 +544,7 @@ export default function AgendarPage() {
                 fontWeight: 900,
                 textTransform: "uppercase",
                 marginBottom: "6px",
+                color: "#e5e7eb",
               }}
             >
               Escolha o serviço
@@ -505,10 +552,9 @@ export default function AgendarPage() {
             <p
               className="fade-in-2"
               style={{
-                color: "#666",
+                color: "#6b7280",
                 fontSize: "13px",
                 marginBottom: "24px",
-                fontFamily: "'Inter',sans-serif",
               }}
             >
               Selecione o que você deseja realizar
@@ -540,10 +586,10 @@ export default function AgendarPage() {
                       <p
                         style={{
                           fontFamily: "'Unbounded',serif",
-                          fontSize: "14px",
+                          fontSize: "13px",
                           fontWeight: 700,
                           marginBottom: "6px",
-                          color: "white",
+                          color: "#e5e7eb",
                         }}
                       >
                         {s.nome}
@@ -551,7 +597,7 @@ export default function AgendarPage() {
                       {s.descricao && (
                         <p
                           style={{
-                            color: "#9ca3af",
+                            color: "#6b7280",
                             fontSize: "13px",
                             lineHeight: "1.5",
                             marginBottom: "6px",
@@ -561,7 +607,7 @@ export default function AgendarPage() {
                           {s.descricao}
                         </p>
                       )}
-                      <p style={{ color: "#555", fontSize: "12px" }}>
+                      <p style={{ color: "#4b5563", fontSize: "12px" }}>
                         {s.duracao_minutos} minutos
                       </p>
                     </div>
@@ -576,25 +622,25 @@ export default function AgendarPage() {
                       <span
                         style={{
                           fontFamily: "'Unbounded',serif",
-                          fontSize: "15px",
+                          fontSize: "13px",
                           fontWeight: 700,
-                          color: "#C5A059",
+                          color: "#9ca3af",
                         }}
                       >
                         R$ {Number(s.preco).toFixed(0)}
                       </span>
                       <div
                         style={{
-                          width: "20px",
-                          height: "20px",
+                          width: "18px",
+                          height: "18px",
                           borderRadius: "9999px",
                           border:
                             servicoSelecionado?.id === s.id
-                              ? "2px solid #C5A059"
-                              : "2px solid #333",
+                              ? "2px solid #e5e7eb"
+                              : "2px solid #374151",
                           background:
                             servicoSelecionado?.id === s.id
-                              ? "#C5A059"
+                              ? "#e5e7eb"
                               : "transparent",
                           display: "flex",
                           alignItems: "center",
@@ -606,8 +652,8 @@ export default function AgendarPage() {
                         {servicoSelecionado?.id === s.id && (
                           <div
                             style={{
-                              width: "7px",
-                              height: "7px",
+                              width: "6px",
+                              height: "6px",
                               borderRadius: "9999px",
                               background: "#0A0A0A",
                             }}
@@ -630,7 +676,7 @@ export default function AgendarPage() {
           </div>
         )}
 
-        {/* STEP 2 */}
+        {/* STEP 2 — DATA E HORA */}
         {step === 2 && (
           <div>
             <h2
@@ -640,6 +686,7 @@ export default function AgendarPage() {
                 fontWeight: 900,
                 textTransform: "uppercase",
                 marginBottom: "6px",
+                color: "#e5e7eb",
               }}
             >
               Data e horário
@@ -647,10 +694,9 @@ export default function AgendarPage() {
             <p
               className="fade-in-2"
               style={{
-                color: "#666",
+                color: "#6b7280",
                 fontSize: "13px",
                 marginBottom: "24px",
-                fontFamily: "'Inter',sans-serif",
               }}
             >
               Escolha quando deseja ser atendido
@@ -658,9 +704,9 @@ export default function AgendarPage() {
             <div
               className="fade-in-3"
               style={{
-                background: "#1A1A1A",
+                background: "#111",
                 borderRadius: "16px",
-                border: "1px solid rgba(255,255,255,0.05)",
+                border: "1px solid #1e1e1e",
                 padding: "16px",
                 marginBottom: "20px",
               }}
@@ -683,15 +729,15 @@ export default function AgendarPage() {
             {dataSelecionada && slotsDisponiveis.length === 0 && (
               <div
                 style={{
-                  background: "#1A1A1A",
+                  background: "#111",
                   borderRadius: "14px",
-                  border: "1px solid rgba(255,255,255,0.05)",
+                  border: "1px solid #1e1e1e",
                   padding: "24px",
                   textAlign: "center",
                   marginBottom: "20px",
                 }}
               >
-                <p style={{ color: "#555", fontSize: "13px" }}>
+                <p style={{ color: "#4b5563", fontSize: "13px" }}>
                   Nenhum horário disponível nesta data
                 </p>
               </div>
@@ -701,12 +747,11 @@ export default function AgendarPage() {
                 <p
                   style={{
                     fontSize: "11px",
-                    fontWeight: 700,
+                    fontWeight: 600,
                     letterSpacing: ".15em",
                     textTransform: "uppercase",
-                    color: "#555",
+                    color: "#4b5563",
                     marginBottom: "12px",
-                    fontFamily: "'Inter',sans-serif",
                   }}
                 >
                   Horários disponíveis
@@ -725,13 +770,7 @@ export default function AgendarPage() {
                         slot.disponivel && setHorarioSelecionado(slot.hora)
                       }
                       disabled={!slot.disponivel}
-                      className={`slot-btn ${
-                        !slot.disponivel
-                          ? "opacity-40 line-through cursor-not-allowed"
-                          : horarioSelecionado === slot.hora
-                            ? "selected"
-                            : ""
-                      }`}
+                      className={`slot-btn ${!slot.disponivel ? "opacity-40 line-through cursor-not-allowed" : horarioSelecionado === slot.hora ? "selected" : ""}`}
                     >
                       {slot.hora}
                     </button>
@@ -754,7 +793,7 @@ export default function AgendarPage() {
           </div>
         )}
 
-        {/* STEP 3 */}
+        {/* STEP 3 — DADOS */}
         {step === 3 && (
           <div>
             <h2
@@ -764,6 +803,7 @@ export default function AgendarPage() {
                 fontWeight: 900,
                 textTransform: "uppercase",
                 marginBottom: "6px",
+                color: "#e5e7eb",
               }}
             >
               Seus dados
@@ -771,10 +811,9 @@ export default function AgendarPage() {
             <p
               className="fade-in-2"
               style={{
-                color: "#666",
+                color: "#6b7280",
                 fontSize: "13px",
                 marginBottom: "24px",
-                fontFamily: "'Inter',sans-serif",
               }}
             >
               Precisamos de algumas informações
@@ -784,9 +823,9 @@ export default function AgendarPage() {
             <div
               className="fade-in-3"
               style={{
-                background: "#1A1A1A",
+                background: "#111",
                 borderRadius: "14px",
-                border: "1px solid rgba(255,255,255,0.05)",
+                border: "1px solid #1e1e1e",
                 padding: "20px",
                 marginBottom: "24px",
               }}
@@ -807,21 +846,14 @@ export default function AgendarPage() {
                     marginBottom: "10px",
                   }}
                 >
-                  <span
-                    style={{
-                      color: "#555",
-                      fontSize: "12px",
-                      fontFamily: "'Inter',sans-serif",
-                    }}
-                  >
+                  <span style={{ color: "#4b5563", fontSize: "12px" }}>
                     {row.label}
                   </span>
                   <span
                     style={{
-                      color: "white",
+                      color: "#d1d5db",
                       fontSize: "12px",
-                      fontWeight: 600,
-                      fontFamily: "'Inter',sans-serif",
+                      fontWeight: 500,
                     }}
                   >
                     {row.value}
@@ -830,17 +862,19 @@ export default function AgendarPage() {
               ))}
               <div
                 style={{
-                  borderTop: "1px solid rgba(255,255,255,0.05)",
+                  borderTop: "1px solid #1e1e1e",
                   paddingTop: "12px",
                   marginTop: "4px",
                   display: "flex",
                   justifyContent: "space-between",
                 }}
               >
-                <span style={{ color: "#555", fontSize: "12px" }}>Valor</span>
+                <span style={{ color: "#4b5563", fontSize: "12px" }}>
+                  Valor
+                </span>
                 <span
                   style={{
-                    color: "#C5A059",
+                    color: "#e5e7eb",
                     fontSize: "15px",
                     fontWeight: 700,
                     fontFamily: "'Unbounded',serif",
@@ -887,12 +921,11 @@ export default function AgendarPage() {
                     style={{
                       display: "block",
                       fontSize: "11px",
-                      fontWeight: 700,
-                      letterSpacing: ".15em",
+                      fontWeight: 600,
+                      letterSpacing: ".12em",
                       textTransform: "uppercase",
-                      color: "#555",
+                      color: "#6b7280",
                       marginBottom: "8px",
-                      fontFamily: "'Inter',sans-serif",
                     }}
                   >
                     {f.label}
@@ -906,6 +939,129 @@ export default function AgendarPage() {
                   />
                 </div>
               ))}
+
+              {/* LOCAL DO CORPO */}
+              <div>
+                <label
+                  style={{
+                    display: "block",
+                    fontSize: "11px",
+                    fontWeight: 600,
+                    letterSpacing: ".12em",
+                    textTransform: "uppercase",
+                    color: "#6b7280",
+                    marginBottom: "8px",
+                  }}
+                >
+                  Local do corpo
+                </label>
+                <input
+                  type="text"
+                  value={localCorpo}
+                  onChange={(e) => setLocalCorpo(e.target.value)}
+                  placeholder="Ex: antebraço direito, costela..."
+                  className="field-input"
+                />
+              </div>
+
+              {/* REFERÊNCIA */}
+              <div>
+                <label
+                  style={{
+                    display: "block",
+                    fontSize: "11px",
+                    fontWeight: 600,
+                    letterSpacing: ".12em",
+                    textTransform: "uppercase",
+                    color: "#6b7280",
+                    marginBottom: "8px",
+                  }}
+                >
+                  Imagem de referência{" "}
+                  <span
+                    style={{
+                      opacity: 0.5,
+                      textTransform: "none",
+                      letterSpacing: 0,
+                      fontWeight: 400,
+                    }}
+                  >
+                    (opcional)
+                  </span>
+                </label>
+                <label style={{ display: "block", cursor: "pointer" }}>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleReferenciaChange}
+                    style={{ display: "none" }}
+                  />
+                  {referenciaPreview ? (
+                    <div
+                      style={{
+                        position: "relative",
+                        borderRadius: "12px",
+                        overflow: "hidden",
+                        border: "1px solid #2a2a2a",
+                      }}
+                    >
+                      <img
+                        src={referenciaPreview}
+                        alt="Referência"
+                        style={{
+                          width: "100%",
+                          maxHeight: "220px",
+                          objectFit: "cover",
+                          display: "block",
+                        }}
+                      />
+                      <div
+                        style={{
+                          position: "absolute",
+                          inset: 0,
+                          background: "rgba(0,0,0,0.55)",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          opacity: 0,
+                          transition: "opacity .2s",
+                        }}
+                        onMouseEnter={(e) =>
+                          (e.currentTarget.style.opacity = "1")
+                        }
+                        onMouseLeave={(e) =>
+                          (e.currentTarget.style.opacity = "0")
+                        }
+                      >
+                        <span
+                          style={{
+                            color: "#e5e7eb",
+                            fontSize: "12px",
+                            fontWeight: 600,
+                          }}
+                        >
+                          Trocar imagem
+                        </span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="upload-area">
+                      <p
+                        style={{
+                          color: "#6b7280",
+                          fontSize: "13px",
+                          marginBottom: "4px",
+                        }}
+                      >
+                        Clique para enviar uma referência
+                      </p>
+                      <p style={{ color: "#374151", fontSize: "11px" }}>
+                        JPG, PNG ou WEBP
+                      </p>
+                    </div>
+                  )}
+                </label>
+              </div>
             </div>
 
             <div style={{ display: "flex", gap: "12px" }}>
@@ -914,10 +1070,10 @@ export default function AgendarPage() {
               </button>
               <button
                 onClick={confirmarAgendamento}
-                disabled={salvando || !nomeCliente || !telefone}
+                disabled={salvando || uploadando || !nomeCliente || !telefone}
                 className="btn-primary"
               >
-                {salvando ? "Enviando..." : "Confirmar"}
+                {salvando || uploadando ? "Enviando..." : "Confirmar"}
               </button>
             </div>
           </div>

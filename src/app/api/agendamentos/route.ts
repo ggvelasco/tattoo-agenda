@@ -14,6 +14,8 @@ export async function POST(req: NextRequest) {
     nome,
     telefone,
     email,
+    local_corpo,
+    referencia_url,
   } = body;
 
   let clienteId: string;
@@ -48,6 +50,8 @@ export async function POST(req: NextRequest) {
     hora_fim,
     status: "pendente",
     valor,
+    local_corpo: local_corpo || null,
+    referencia_url: referencia_url || null,
   });
 
   if (agError)

@@ -18,6 +18,8 @@ type Agendamento = {
   hora_fim: string;
   status: string;
   valor: number;
+  local_corpo: string | null;
+  referencia_url: string | null;
   clientes: { nome: string; telefone: string; email: string } | null;
   servicos: { nome: string; duracao_minutos: number } | null;
 };
@@ -226,6 +228,37 @@ export default function AgendamentosPage() {
                         </span>
                       )}
                     </div>
+                    {/* LOCAL DO CORPO */}
+                    {ag.local_corpo && (
+                      <div className="flex items-center gap-1.5 mt-2">
+                        <span className="text-xs text-muted-foreground">
+                          📍
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {ag.local_corpo}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* REFERÊNCIA */}
+                    {ag.referencia_url && (
+                      <div className="mt-3">
+                        <p className="text-xs text-muted-foreground mb-2 uppercase tracking-widest font-medium">
+                          Referência
+                        </p>
+                        <a
+                          href={ag.referencia_url}
+                          target="_blank"
+                          className="block"
+                        >
+                          <img
+                            src={ag.referencia_url}
+                            alt="Referência do cliente"
+                            className="rounded-lg border border-border object-cover w-full max-h-48 hover:opacity-80 transition-opacity cursor-zoom-in"
+                          />
+                        </a>
+                      </div>
+                    )}
                   </div>
 
                   {/* AÇÕES */}
