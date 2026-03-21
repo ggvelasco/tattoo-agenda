@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo } from "react";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { useMemo, useState } from "react";
 import {
   CalendarDays,
   Clock,
@@ -8,13 +9,17 @@ import {
   AlertCircle,
   CheckCircle2,
   TrendingUp,
+  ImageIcon,
 } from "lucide-react";
+import { VisuallyHidden } from "radix-ui";
 
 type Agendamento = {
   id: string;
   data: string;
   hora_inicio: string;
   status: string;
+  local_corpo: string | null;
+  referencia_url: string | null;
   clientes: { nome: string; telefone: string } | null;
   servicos: { nome: string; duracao_minutos: number } | null;
 };
@@ -38,19 +43,13 @@ export default function DashboardClient({
   totalPendentes,
   totalProximas,
 }: Props) {
-  // tudo calculado com o horário do BROWSER
   const agora = new Date();
   const horaAtual = agora.getHours() * 60 + agora.getMinutes();
   const hora = agora.getHours();
-
-  // saudação baseada na hora local do browser
   const saudacao =
     hora < 12 ? "Bom dia" : hora < 18 ? "Boa tarde" : "Boa noite";
-
-  // data local do browser
   const hoje = `${agora.getFullYear()}-${String(agora.getMonth() + 1).padStart(2, "0")}-${String(agora.getDate()).padStart(2, "0")}`;
 
-  // filtra só os agendamentos do dia atual do browser
   const agendamentosHoje = useMemo(
     () => agendamentosRaw.filter((ag) => ag.data === hoje),
     [agendamentosRaw, hoje],
@@ -81,6 +80,8 @@ export default function DashboardClient({
     [agendamentosHoje, horaAtual],
   );
 
+  const [imagemAberta, setImagemAberta] = useState<string | null>(null);
+
   return (
     <div className="space-y-8">
       {/* HEADER */}
@@ -99,7 +100,6 @@ export default function DashboardClient({
 
       {/* 4 CARDS */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* SESSÕES HOJE */}
         <div className="bg-card border border-border rounded-xl p-5 space-y-3">
           <div className="flex items-center justify-between">
             <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
@@ -117,7 +117,6 @@ export default function DashboardClient({
           </p>
         </div>
 
-        {/* PENDENTES */}
         <div className="bg-card border border-border rounded-xl p-5 space-y-3">
           <div className="flex items-center justify-between">
             <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
@@ -133,7 +132,6 @@ export default function DashboardClient({
           </p>
         </div>
 
-        {/* PRÓXIMO */}
         <div className="bg-card border border-border rounded-xl p-5 space-y-3">
           <div className="flex items-center justify-between">
             <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
@@ -164,7 +162,6 @@ export default function DashboardClient({
           )}
         </div>
 
-        {/* PRÓXIMAS */}
         <div className="bg-card border border-border rounded-xl p-5 space-y-3">
           <div className="flex items-center justify-between">
             <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
@@ -211,7 +208,8 @@ export default function DashboardClient({
                         : "border-border"
                   }`}
                 >
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-4 flex-1 min-w-0">
+                    {/* HORÁRIO */}
                     <div className="text-center min-w-[48px]">
                       <p
                         className={`text-base font-bold ${jaPassou ? "text-muted-foreground" : "text-foreground"}`}
@@ -219,9 +217,11 @@ export default function DashboardClient({
                         {ag.hora_inicio.slice(0, 5)}
                       </p>
                     </div>
-                    <div className="w-px h-10 bg-border" />
-                    <div>
-                      <div className="flex items-center gap-2">
+                    <div className="w-px h-10 bg-border flex-shrink-0" />
+
+                    {/* INFO */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <p className="font-semibold text-foreground text-sm">
                           {ag.clientes?.nome}
                         </p>
@@ -234,26 +234,49 @@ export default function DashboardClient({
                       <p className="text-xs text-muted-foreground mt-0.5">
                         {ag.servicos?.nome} · {ag.servicos?.duracao_minutos}min
                       </p>
+                      {ag.local_corpo && (
+                        <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
+                          📍 {ag.local_corpo}
+                        </p>
+                      )}
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-3 w-28 justify-end">
-                    <div className="flex items-center gap-1.5">
+                  {/* AÇÕES */}
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    {/* THUMBNAIL REFERÊNCIA */}
+                    {ag.referencia_url && (
+                      <button
+                        onClick={() => setImagemAberta(ag.referencia_url)}
+                        title="Ver referência"
+                        className="relative flex-shrink-0 group"
+                      >
+                        <img
+                          src={ag.referencia_url}
+                          alt="Referência"
+                          className="w-10 h-10 rounded-lg object-cover border border-border group-hover:border-primary transition-colors"
+                        />
+                        <div className="absolute inset-0 rounded-lg bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
+                          <ImageIcon className="w-3 h-3 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                        </div>
+                      </button>
+                    )}
+
+                    {/* STATUS */}
+                    <div className="flex items-center gap-1.5 w-24 justify-end">
                       {ag.status === "confirmado" ? (
                         <CheckCircle2 className="w-4 h-4 text-green-400" />
                       ) : (
                         <AlertCircle className="w-4 h-4 text-yellow-400" />
                       )}
                       <span
-                        className={`text-xs font-medium ${
-                          ag.status === "confirmado"
-                            ? "text-green-400"
-                            : "text-yellow-400"
-                        }`}
+                        className={`text-xs font-medium ${ag.status === "confirmado" ? "text-green-400" : "text-yellow-400"}`}
                       >
                         {ag.status}
                       </span>
                     </div>
+
+                    {/* WHATSAPP */}
                     {ag.clientes?.telefone && (
                       <a
                         href={`https://wa.me/55${ag.clientes.telefone.replace(/\D/g, "")}?text=${encodeURIComponent(`Olá ${ag.clientes.nome}! Sobre sua sessão de ${ag.servicos?.nome} hoje às ${ag.hora_inicio.slice(0, 5)}.`)}`}
@@ -279,6 +302,23 @@ export default function DashboardClient({
             </p>
           </div>
         )}
+        <Dialog
+          open={!!imagemAberta}
+          onOpenChange={(open) => !open && setImagemAberta(null)}
+        >
+          <DialogContent className="max-w-2xl p-2">
+            <VisuallyHidden.Root>
+              <DialogTitle>Imagem de referência</DialogTitle>
+            </VisuallyHidden.Root>
+            {imagemAberta && (
+              <img
+                src={imagemAberta}
+                alt="Referência do cliente"
+                className="w-full rounded-lg object-contain max-h-[80vh]"
+              />
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

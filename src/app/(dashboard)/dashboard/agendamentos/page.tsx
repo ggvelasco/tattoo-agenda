@@ -9,7 +9,11 @@ import {
   CalendarDays,
   Phone,
   Filter,
+  ImageIcon,
 } from "lucide-react";
+
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { VisuallyHidden } from "radix-ui";
 
 type Agendamento = {
   id: string;
@@ -38,6 +42,8 @@ const WA_ICON = (
 );
 
 export default function AgendamentosPage() {
+  const [imagemAberta, setImagemAberta] = useState<string | null>(null);
+
   const [agendamentos, setAgendamentos] = useState<Agendamento[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState("todos");
@@ -54,7 +60,6 @@ export default function AgendamentosPage() {
       .select("id")
       .eq("user_id", user.id)
       .single();
-
     if (!perfil) return;
 
     const { data } = await supabase
@@ -93,7 +98,6 @@ export default function AgendamentosPage() {
     tab === "todos"
       ? agendamentos
       : agendamentos.filter((ag) => ag.status === tab);
-
   const contagem = (status: string) =>
     status === "todos"
       ? agendamentos.length
@@ -154,9 +158,7 @@ export default function AgendamentosPage() {
             {t.label}
             {contagem(t.key) > 0 && (
               <span
-                className={`text-[10px] px-1.5 py-0.5 rounded-full ${
-                  tab === t.key ? "bg-muted text-foreground" : "bg-muted/50"
-                }`}
+                className={`text-[10px] px-1.5 py-0.5 rounded-full ${tab === t.key ? "bg-muted text-foreground" : "bg-muted/50"}`}
               >
                 {contagem(t.key)}
               </span>
@@ -228,41 +230,35 @@ export default function AgendamentosPage() {
                         </span>
                       )}
                     </div>
-                    {/* LOCAL DO CORPO */}
-                    {ag.local_corpo && (
-                      <div className="flex items-center gap-1.5 mt-2">
-                        <span className="text-xs text-muted-foreground">
-                          📍
-                        </span>
-                        <span className="text-xs text-muted-foreground">
-                          {ag.local_corpo}
-                        </span>
-                      </div>
-                    )}
 
-                    {/* REFERÊNCIA */}
-                    {ag.referencia_url && (
-                      <div className="mt-3">
-                        <p className="text-xs text-muted-foreground mb-2 uppercase tracking-widest font-medium">
-                          Referência
-                        </p>
-                        <a
-                          href={ag.referencia_url}
-                          target="_blank"
-                          className="block"
-                        >
-                          <img
-                            src={ag.referencia_url}
-                            alt="Referência do cliente"
-                            className="rounded-lg border border-border object-cover w-full max-h-48 hover:opacity-80 transition-opacity cursor-zoom-in"
-                          />
-                        </a>
-                      </div>
+                    {ag.local_corpo && (
+                      <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                        📍 {ag.local_corpo}
+                      </p>
                     )}
                   </div>
 
                   {/* AÇÕES */}
                   <div className="flex items-center gap-2 flex-shrink-0">
+                    {/* THUMBNAIL REFERÊNCIA */}
+                    {ag.referencia_url && (
+                      <button
+                        onClick={() => setImagemAberta(ag.referencia_url)}
+                        title="Ver referência"
+                        className="relative shrink-0 group"
+                      >
+                        <img
+                          src={ag.referencia_url}
+                          alt="Referência"
+                          className="w-10 h-10 rounded-lg object-cover border border-border group-hover:border-primary transition-colors"
+                        />
+                        <div className="absolute inset-0 rounded-lg bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
+                          <ImageIcon className="w-3 h-3 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                        </div>
+                      </button>
+                    )}
+
+                    {/* WHATSAPP */}
                     {ag.clientes?.telefone && (
                       <a
                         href={`https://wa.me/55${ag.clientes.telefone.replace(/\D/g, "")}?text=${encodeURIComponent(`Olá ${ag.clientes.nome}! Sobre sua sessão de ${ag.servicos?.nome} no dia ${formatarData(ag.data, ag.hora_inicio)}.`)}`}
@@ -276,22 +272,20 @@ export default function AgendamentosPage() {
                   </div>
                 </div>
 
-                {/* AÇÕES DE STATUS — só pra pendentes */}
+                {/* AÇÕES DE STATUS */}
                 {ag.status === "pendente" && (
                   <div className="flex gap-2 mt-3 pt-3 border-t border-border">
                     <button
                       onClick={() => atualizarStatus(ag.id, "confirmado")}
                       className="flex-1 flex items-center justify-center gap-1.5 bg-green-500/10 text-green-400 hover:bg-green-500/20 border border-green-500/20 py-2 text-xs font-medium rounded-lg transition-colors"
                     >
-                      <CheckCircle2 className="w-3.5 h-3.5" />
-                      Confirmar
+                      <CheckCircle2 className="w-3.5 h-3.5" /> Confirmar
                     </button>
                     <button
                       onClick={() => atualizarStatus(ag.id, "cancelado")}
                       className="flex-1 flex items-center justify-center gap-1.5 bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/20 py-2 text-xs font-medium rounded-lg transition-colors"
                     >
-                      <XCircle className="w-3.5 h-3.5" />
-                      Cancelar
+                      <XCircle className="w-3.5 h-3.5" /> Cancelar
                     </button>
                   </div>
                 )}
@@ -300,6 +294,23 @@ export default function AgendamentosPage() {
           })}
         </div>
       )}
+      <Dialog
+        open={!!imagemAberta}
+        onOpenChange={(open) => !open && setImagemAberta(null)}
+      >
+        <DialogContent className="max-w-2xl p-2">
+          <VisuallyHidden.Root>
+            <DialogTitle>Imagem de referência</DialogTitle>
+          </VisuallyHidden.Root>
+          {imagemAberta && (
+            <img
+              src={imagemAberta}
+              alt="Referência do cliente"
+              className="w-full rounded-lg object-contain max-h-[80vh]"
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
