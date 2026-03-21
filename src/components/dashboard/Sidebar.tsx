@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
+import { AnimatedThemeToggler } from "../ui/animated-theme-toggler";
 
 const links = [
   { href: "/dashboard", label: "Início", icon: "◈" },
@@ -55,6 +56,11 @@ export default function Sidebar() {
           );
         })}
       </nav>
+
+      {/* THEME TOGGLE FIXO NO CANTO — desktop only */}
+      <div className="hidden md:block fixed bottom-6 right-6 z-50">
+        <AnimatedThemeToggler />
+      </div>
 
       <div className="p-4 border-t border-zinc-800">
         <button

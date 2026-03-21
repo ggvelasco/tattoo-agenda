@@ -24,6 +24,7 @@ import {
   SidebarMenuButton,
   SidebarRail,
 } from "@/components/ui/sidebar";
+import { AnimatedThemeToggler } from "./ui/animated-theme-toggler";
 
 const links = [
   { href: "/dashboard", label: "Início", icon: HomeIcon },
@@ -86,6 +87,10 @@ export function SidebarLeft({
       <SidebarFooter className="p-2 border-t border-sidebar-border">
         <SidebarMenu>
           <SidebarMenuItem>
+            {/* THEME TOGGLE FIXO NO CANTO — desktop only */}
+            <div className="hidden md:block fixed bottom-14 left-3 z-50">
+              <AnimatedThemeToggler />
+            </div>
             <SidebarMenuButton onClick={handleLogout}>
               <LogOutIcon className="size-4" />
               <span>Sair</span>
