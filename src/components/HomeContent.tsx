@@ -126,13 +126,6 @@ const DotPattern = () => (
 function DashboardMockup() {
   const agendamentos = [
     {
-      nome: "Mariana Costa",
-      servico: "Blackwork · 3h",
-      hora: "10:00",
-      status: "confirmado",
-      jaPassou: true,
-    },
-    {
       nome: "Rafael Lima",
       servico: "Fine Line · 2h",
       hora: "14:00",
@@ -144,6 +137,13 @@ function DashboardMockup() {
       servico: "Traditional · 4h",
       hora: "16:00",
       status: "pendente",
+    },
+    {
+      nome: "Mariana Costa",
+      servico: "Blackwork · 3h",
+      hora: "10:00",
+      status: "confirmado",
+      jaPassou: true,
     },
   ];
   return (
@@ -230,7 +230,7 @@ function DashboardMockup() {
             },
             {
               label: "Próximo",
-              value: "Rafael L.",
+              value: "Rafael Lima",
               color: "#22c55e",
               sub: "14:00",
             },
