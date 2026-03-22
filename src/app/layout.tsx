@@ -5,6 +5,7 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import { Analytics } from "@vercel/analytics/next";
 
 import "./globals.css";
+import SmoothScroll from "@/components/SmoothScroll";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -60,6 +61,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${unbounded.variable} ${inter.variable} antialiased font-sans`}
       >
+        <SmoothScroll />
         <TooltipProvider>
           <ThemeProvider>
             {children}
