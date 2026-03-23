@@ -322,7 +322,7 @@ function DashboardMockup() {
             >
               Agenda de hoje
             </span>
-            <span style={{ fontSize: "9px", color: "#222" }}>3 sessões</span>
+            <span style={{ fontSize: "9px", color: "#444" }}>3 sessões</span>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
             {agendamentos.map((ag) => (
@@ -764,7 +764,7 @@ export default function HomeContent({ isLoggedIn }: { isLoggedIn?: boolean }) {
             DOMINE SUA
             <br />
             <motion.span
-              style={{ color: "#e5e7eb" }}
+              style={{ color: ACCENT }}
               initial={{ opacity: 0, x: -24 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.7, delay: 0.6 }}
@@ -861,7 +861,7 @@ export default function HomeContent({ isLoggedIn }: { isLoggedIn?: boolean }) {
                 "Preços Flexíveis",
               ].map((t, i) => (
                 <span key={i}>
-                  {t} <span style={{ color: `${ACCENT}50` }}>✦</span>
+                  {t} <span style={{ color: `${ACCENT}` }}>✦</span>
                 </span>
               ))}
             </div>
