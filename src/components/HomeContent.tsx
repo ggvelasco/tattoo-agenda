@@ -3,6 +3,7 @@
 import { motion, useScroll, useTransform, useInView } from "framer-motion";
 import { useRef, useState } from "react";
 import Link from "next/link";
+import { Highlighter } from "./ui/highlighter";
 
 const ACCENT = "#818cf8";
 const ACCENT2 = "#a78bfa";
@@ -195,7 +196,7 @@ function DashboardMockup() {
             border: "1px solid #1a1a1a",
           }}
         >
-          dashboard.tattooagenda.ink
+          tattooagenda.ink/dashboard
         </div>
       </div>
       <div
@@ -208,13 +209,7 @@ function DashboardMockup() {
         }}
       >
         {/* stats */}
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(4,1fr)",
-            gap: "8px",
-          }}
-        >
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
           {[
             {
               label: "Sessões hoje",
@@ -466,6 +461,7 @@ function FeatureCard({
   const ref = useRef(null);
   const inView = useInView(ref, { once: true, margin: "-40px" });
   const [hovered, setHovered] = useState(false);
+
   return (
     <motion.div
       ref={ref}

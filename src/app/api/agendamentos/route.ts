@@ -16,6 +16,7 @@ export async function POST(req: NextRequest) {
     email,
     local_corpo,
     referencia_url,
+    anamnese,
   } = body;
 
   let clienteId: string;
@@ -52,6 +53,7 @@ export async function POST(req: NextRequest) {
     valor,
     local_corpo: local_corpo || null,
     referencia_url: referencia_url || null,
+    anamnese: anamnese || null,
   });
 
   if (agError)

@@ -6,8 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Calendar } from "@/components/ui/calendar";
 import { ptBR } from "date-fns/locale";
 import Link from "next/link";
-import { toast } from "sonner";
-import { Toaster } from "sonner";
+import { toast, Toaster } from "sonner";
 
 type Servico = {
   id: string;
@@ -17,6 +16,70 @@ type Servico = {
   preco: number;
 };
 type Profissional = { id: string; nome: string; slug: string };
+
+type Anamnese = {
+  alergia: boolean | null;
+  alergia_desc: string;
+  diabetes: boolean | null;
+  condicao_pele: boolean | null;
+  condicao_pele_desc: string;
+  gravida: boolean | null;
+  medicamentos: boolean | null;
+  medicamentos_desc: string;
+  menor_idade: boolean | null;
+  responsavel: string;
+  aceite: boolean;
+};
+
+const ANAMNESE_INICIAL: Anamnese = {
+  alergia: null,
+  alergia_desc: "",
+  diabetes: null,
+  condicao_pele: null,
+  condicao_pele_desc: "",
+  gravida: null,
+  medicamentos: null,
+  medicamentos_desc: "",
+  menor_idade: null,
+  responsavel: "",
+  aceite: false,
+};
+
+const PERGUNTAS: {
+  key: keyof Anamnese;
+  label: string;
+  descKey?: keyof Anamnese;
+  descPlaceholder?: string;
+}[] = [
+  {
+    key: "alergia",
+    label: "Tem alguma alergia?",
+    descKey: "alergia_desc",
+    descPlaceholder: "Qual alergia?",
+  },
+  { key: "diabetes", label: "Tem diabetes?" },
+  {
+    key: "condicao_pele",
+    label: "Tem alguma condição de pele? (psoríase, eczema, queloides...)",
+    descKey: "condicao_pele_desc",
+    descPlaceholder: "Qual condição?",
+  },
+  { key: "gravida", label: "Está grávida ou amamentando?" },
+  {
+    key: "medicamentos",
+    label:
+      "Faz uso contínuo de algum medicamento? (anticoagulantes, antidepressivos, isotretinoína...)",
+    descKey: "medicamentos_desc",
+    descPlaceholder: "Qual medicamento?",
+  },
+  {
+    key: "menor_idade",
+    label: "É menor de idade?",
+    descKey: "responsavel",
+    descPlaceholder: "Nome completo do responsável",
+  },
+];
+
 const STEPS = ["Serviço", "Data & hora", "Seus dados"];
 
 export default function AgendarPage() {
@@ -50,6 +113,17 @@ export default function AgendarPage() {
     null,
   );
   const [uploadando, setUploadando] = useState(false);
+  const [anamnese, setAnamnese] = useState<Anamnese>(ANAMNESE_INICIAL);
+
+  // verifica se todas as perguntas da anamnese foram respondidas
+  const anamneseCompleta = PERGUNTAS.every((p) => anamnese[p.key] !== null);
+  const podeConfirmar =
+    !salvando &&
+    !uploadando &&
+    !!nomeCliente &&
+    !!telefone &&
+    anamneseCompleta &&
+    anamnese.aceite;
 
   useEffect(() => {
     fetchDados();
@@ -133,8 +207,6 @@ export default function AgendarPage() {
   function handleReferenciaChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-
-    // valida tipo
     const tiposPermitidos = ["image/jpeg", "image/png", "image/webp"];
     if (!tiposPermitidos.includes(file.type)) {
       toast.error("Formato não suportado", {
@@ -142,19 +214,23 @@ export default function AgendarPage() {
       });
       return;
     }
-
-    // valida tamanho — máximo 5MB
     if (file.size > 5 * 1024 * 1024) {
       toast.error("Imagem muito grande", {
         description: "A imagem deve ter no máximo 5MB.",
       });
       return;
     }
-
     setReferenciaFile(file);
     const reader = new FileReader();
     reader.onload = () => setReferenciaPreview(reader.result as string);
     reader.readAsDataURL(file);
+  }
+
+  function updateAnamnese(
+    field: keyof Anamnese,
+    value: boolean | string | null,
+  ) {
+    setAnamnese((prev) => ({ ...prev, [field]: value }));
   }
 
   async function confirmarAgendamento() {
@@ -205,6 +281,7 @@ export default function AgendarPage() {
         email,
         local_corpo: localCorpo,
         referencia_url: referenciaUrl,
+        anamnese,
       }),
     });
 
@@ -356,80 +433,34 @@ export default function AgendarPage() {
         *, *::before, *::after { box-sizing: border-box; margin:0; padding:0; }
         body { font-family:'Inter',sans-serif; -webkit-font-smoothing:antialiased; }
         .font-display { font-family:'Unbounded',serif; }
-
         @keyframes fadeUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
         .fade-in   { animation: fadeUp .45s ease both; }
         .fade-in-2 { animation: fadeUp .45s .08s ease both; }
         .fade-in-3 { animation: fadeUp .45s .16s ease both; }
-
-        .step-circle {
-          width:28px; height:28px; border-radius:9999px;
-          display:flex; align-items:center; justify-content:center;
-          font-size:11px; font-weight:700; font-family:'Unbounded',serif;
-          transition: all .3s ease;
-        }
+        .step-circle { width:28px; height:28px; border-radius:9999px; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; font-family:'Unbounded',serif; transition: all .3s ease; }
         .step-done   { background:#e5e7eb; color:#0A0A0A; }
         .step-active { background:#1c1c1c; color:#e5e7eb; border:1.5px solid #e5e7eb; }
         .step-idle   { background:#141414; color:#4b5563; border:1.5px solid #262626; }
-
-        .service-opt {
-          width:100%; text-align:left; padding:20px;
-          border-radius:14px; border:1px solid #222;
-          background:#141414; cursor:pointer;
-          transition: border-color .2s, background .2s, transform .2s, box-shadow .2s;
-          display:block;
-        }
+        .service-opt { width:100%; text-align:left; padding:20px; border-radius:14px; border:1px solid #222; background:#141414; cursor:pointer; transition: border-color .2s, background .2s, transform .2s, box-shadow .2s; display:block; }
         .service-opt:hover { border-color:#3a3a3a; background:#181818; transform:translateY(-1px); box-shadow:0 8px 24px rgba(0,0,0,0.35); }
         .service-opt.selected { border-color:#9ca3af; background:#1a1a1a; }
-
-        .slot-btn {
-          padding:10px 0; border-radius:10px;
-          font-size:12px; font-weight:600; letter-spacing:.03em;
-          border:1px solid #222; background:#141414; color:#6b7280;
-          cursor:pointer; transition: all .2s;
-          font-family:'Inter',sans-serif;
-        }
+        .slot-btn { padding:10px 0; border-radius:10px; font-size:12px; font-weight:600; letter-spacing:.03em; border:1px solid #222; background:#141414; color:#6b7280; cursor:pointer; transition: all .2s; font-family:'Inter',sans-serif; }
         .slot-btn:hover:not(:disabled) { border-color:#6b7280; color:#e5e7eb; background:#1c1c1c; }
         .slot-btn.selected { border-color:#e5e7eb; background:#1c1c1c; color:#e5e7eb; }
-
-        .field-input {
-          width:100%; background:#141414; border:1px solid #2a2a2a;
-          color:#e5e7eb; font-size:14px; padding:13px 16px;
-          border-radius:12px; font-family:'Inter',sans-serif;
-          font-weight:300; transition: border-color .2s, background .2s; outline:none;
-        }
+        .field-input { width:100%; background:#141414; border:1px solid #2a2a2a; color:#e5e7eb; font-size:14px; padding:13px 16px; border-radius:12px; font-family:'Inter',sans-serif; font-weight:300; transition: border-color .2s, background .2s; outline:none; }
         .field-input:focus { border-color:#6b7280; background:#181818; }
         .field-input::placeholder { color:#4b5563; }
-
-        .btn-primary {
-          flex:1; padding:14px; border-radius:9999px;
-          background:#e5e7eb; color:#0A0A0A;
-          font-size:11px; font-weight:700;
-          text-transform:uppercase; letter-spacing:.12em;
-          border:none; cursor:pointer; font-family:'Inter',sans-serif;
-          transition: background .2s, transform .15s, box-shadow .2s;
-        }
+        .btn-primary { flex:1; padding:14px; border-radius:9999px; background:#e5e7eb; color:#0A0A0A; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.12em; border:none; cursor:pointer; font-family:'Inter',sans-serif; transition: background .2s, transform .15s, box-shadow .2s; }
         .btn-primary:hover { background:white; transform:translateY(-1px); box-shadow:0 8px 20px rgba(255,255,255,0.1); }
         .btn-primary:disabled { opacity:.35; cursor:not-allowed; transform:none; box-shadow:none; }
-
-        .btn-secondary {
-          flex:1; padding:14px; border-radius:9999px;
-          background:transparent; color:#6b7280;
-          font-size:11px; font-weight:700;
-          text-transform:uppercase; letter-spacing:.12em;
-          border:1px solid #2a2a2a; cursor:pointer; font-family:'Inter',sans-serif;
-          transition: border-color .2s, color .2s;
-        }
+        .btn-secondary { flex:1; padding:14px; border-radius:9999px; background:transparent; color:#6b7280; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.12em; border:1px solid #2a2a2a; cursor:pointer; font-family:'Inter',sans-serif; transition: border-color .2s, color .2s; }
         .btn-secondary:hover { border-color:#6b7280; color:#e5e7eb; }
-
         .rdp { --rdp-accent-color:#e5e7eb !important; --rdp-background-color:rgba(255,255,255,0.06) !important; }
-
-        .upload-area {
-          border:1px dashed #2a2a2a; border-radius:12px; padding:32px;
-          text-align:center; cursor:pointer;
-          transition: border-color .2s, background .2s;
-        }
+        .upload-area { border:1px dashed #2a2a2a; border-radius:12px; padding:32px; text-align:center; cursor:pointer; transition: border-color .2s, background .2s; }
         .upload-area:hover { border-color:#4b5563; background:#141414; }
+        .toggle-btn { padding:5px 16px; border-radius:9999px; font-size:11px; font-weight:700; font-family:'Inter',sans-serif; cursor:pointer; transition: all .2s; border:1px solid #2a2a2a; background:transparent; color:#4b5563; }
+        .toggle-btn.sim { border-color:#ef444450; background:rgba(239,68,68,0.1); color:#ef4444; }
+        .toggle-btn.nao { border-color:#22c55e50; background:rgba(34,197,94,0.08); color:#22c55e; }
       `}</style>
 
       {/* NAV */}
@@ -885,6 +916,7 @@ export default function AgendarPage() {
               </div>
             </div>
 
+            {/* DADOS PESSOAIS */}
             <div
               style={{
                 display: "flex",
@@ -1064,13 +1096,203 @@ export default function AgendarPage() {
               </div>
             </div>
 
+            {/* ── FICHA DE ANAMNESE ─────────────────────────────── */}
+            <div
+              style={{
+                borderTop: "1px solid #1f1f1f",
+                paddingTop: "28px",
+                marginBottom: "28px",
+              }}
+            >
+              <div style={{ marginBottom: "20px" }}>
+                <label
+                  style={{
+                    display: "block",
+                    fontSize: "11px",
+                    fontWeight: 600,
+                    letterSpacing: ".12em",
+                    textTransform: "uppercase",
+                    color: "#6b7280",
+                    marginBottom: "6px",
+                  }}
+                >
+                  Ficha de Anamnese
+                </label>
+                <p
+                  style={{
+                    fontSize: "12px",
+                    color: "#374151",
+                    fontWeight: 300,
+                    lineHeight: 1.6,
+                  }}
+                >
+                  Informações necessárias para garantir sua segurança durante a
+                  sessão. Responda todas as perguntas abaixo.
+                </p>
+              </div>
+
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "10px",
+                  marginBottom: "16px",
+                }}
+              >
+                {PERGUNTAS.map(({ key, label, descKey, descPlaceholder }) => (
+                  <div
+                    key={key}
+                    style={{
+                      background: "#111",
+                      border: `1px solid ${anamnese[key] === null ? "#1f1f1f" : anamnese[key] === true ? "#ef444425" : "#22c55e20"}`,
+                      borderRadius: "12px",
+                      padding: "14px 16px",
+                      transition: "border-color .2s",
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        gap: "12px",
+                      }}
+                    >
+                      <span
+                        style={{
+                          fontSize: "13px",
+                          color: "#d1d5db",
+                          fontWeight: 300,
+                          lineHeight: 1.4,
+                          flex: 1,
+                        }}
+                      >
+                        {label}
+                      </span>
+                      <div
+                        style={{ display: "flex", gap: "6px", flexShrink: 0 }}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => updateAnamnese(key, false)}
+                          className={`toggle-btn ${anamnese[key] === false ? "nao" : ""}`}
+                        >
+                          Não
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => updateAnamnese(key, true)}
+                          className={`toggle-btn ${anamnese[key] === true ? "sim" : ""}`}
+                        >
+                          Sim
+                        </button>
+                      </div>
+                    </div>
+                    {descKey && anamnese[key] === true && (
+                      <div style={{ marginTop: "10px" }}>
+                        <input
+                          type="text"
+                          value={anamnese[descKey] as string}
+                          onChange={(e) =>
+                            updateAnamnese(descKey, e.target.value)
+                          }
+                          placeholder={descPlaceholder}
+                          className="field-input"
+                          style={{ fontSize: "13px", background: "#141414" }}
+                        />
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {/* ACEITE LEGAL */}
+              <button
+                type="button"
+                onClick={() => updateAnamnese("aceite", !anamnese.aceite)}
+                style={{
+                  width: "100%",
+                  textAlign: "left",
+                  padding: "14px 16px",
+                  borderRadius: "12px",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "flex-start",
+                  gap: "12px",
+                  border: anamnese.aceite
+                    ? "1px solid rgba(34,197,94,0.25)"
+                    : "1px solid #2a2a2a",
+                  background: anamnese.aceite ? "rgba(34,197,94,0.05)" : "#111",
+                  transition: "all .2s",
+                }}
+              >
+                {/* checkbox visual */}
+                <div
+                  style={{
+                    width: "18px",
+                    height: "18px",
+                    borderRadius: "5px",
+                    flexShrink: 0,
+                    marginTop: "1px",
+                    border: anamnese.aceite
+                      ? "2px solid #22c55e"
+                      : "2px solid #374151",
+                    background: anamnese.aceite ? "#22c55e" : "transparent",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    transition: "all .2s",
+                  }}
+                >
+                  {anamnese.aceite && (
+                    <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                      <path
+                        d="M1.5 5L4 7.5L8.5 2.5"
+                        stroke="#0A0A0A"
+                        strokeWidth="1.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  )}
+                </div>
+                <span
+                  style={{
+                    fontSize: "12px",
+                    color: anamnese.aceite ? "#d1d5db" : "#6b7280",
+                    lineHeight: 1.6,
+                    fontWeight: 300,
+                    transition: "color .2s",
+                  }}
+                >
+                  Declaro que as informações acima são verdadeiras e autorizo a
+                  realização do procedimento de tatuagem com pleno conhecimento
+                  dos riscos envolvidos.
+                </span>
+              </button>
+
+              {/* aviso se ainda falta responder */}
+              {!anamneseCompleta && (
+                <p
+                  style={{
+                    fontSize: "11px",
+                    color: "#4b5563",
+                    marginTop: "10px",
+                    textAlign: "center",
+                  }}
+                >
+                  Responda todas as perguntas para continuar
+                </p>
+              )}
+            </div>
+
             <div style={{ display: "flex", gap: "12px" }}>
               <button onClick={() => setStep(2)} className="btn-secondary">
                 Voltar
               </button>
               <button
                 onClick={confirmarAgendamento}
-                disabled={salvando || uploadando || !nomeCliente || !telefone}
+                disabled={!podeConfirmar}
                 className="btn-primary"
               >
                 {salvando || uploadando ? "Enviando..." : "Confirmar"}
