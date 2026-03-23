@@ -626,8 +626,8 @@ export default function HomeContent({ isLoggedIn }: { isLoggedIn?: boolean }) {
         .cta-btn-final{background:#e5e7eb;color:#0A0A0A;padding:18px 48px;border-radius:9999px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;text-decoration:none;font-family:'Inter',sans-serif;display:inline-block;transition:all .2s}
         .cta-btn-final:hover{background:white;transform:scale(1.04);box-shadow:0 0 40px rgba(255,255,255,0.08)}
 
-        .footer-link{color:#252525;font-size:10px;text-transform:uppercase;letter-spacing:.15em;text-decoration:none;transition:color .2s}
-        .footer-link:hover{color:#555}
+        .footer-link{color:#6a7282;font-size:10px;text-transform:uppercase;letter-spacing:.15em;text-decoration:none;transition:color .2s}
+        .footer-link:hover{color:#e5e7eb}
 
         @media(max-width:768px){.site-header{padding:16px 20px}.nav-links{display:none}}
       `}</style>
@@ -1594,10 +1594,10 @@ export default function HomeContent({ isLoggedIn }: { isLoggedIn?: boolean }) {
               marginBottom: "20px",
               textTransform: "uppercase",
               fontSize: "15px",
-              color: "#1c1c1c",
+              color: "#e5e7eb",
             }}
           >
-            TATTOO<span style={{ color: "#222" }}>AGENDA</span>
+            TATTOO<span style={{ color: "#6a7282" }}>AGENDA</span>
           </div>
           <div
             style={{
@@ -1620,7 +1620,7 @@ export default function HomeContent({ isLoggedIn }: { isLoggedIn?: boolean }) {
           </div>
           <p
             style={{
-              color: "#181818",
+              color: "#6a7282",
               fontSize: "10px",
               textTransform: "uppercase",
               letterSpacing: ".1em",

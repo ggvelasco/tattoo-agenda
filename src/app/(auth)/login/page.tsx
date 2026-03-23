@@ -492,7 +492,7 @@ export default function LoginPage() {
           }}
         >
           TATTOO
-          <span style={{ color: ACCENT, opacity: 0.4 }}>AGENDA</span>
+          <span>AGENDA</span>
         </p>
       </motion.div>
     </div>
