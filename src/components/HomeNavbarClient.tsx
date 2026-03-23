@@ -29,7 +29,7 @@ export default function HomeNavbarClient({
             flexShrink: 0,
           }}
         >
-          TATTOO<span style={{ color: "#818cf8" }}>AGENDA</span>
+          TATTOO<span style={{ color: "#FFFFF" }}>AGENDA</span>
         </div>
 
         {/* NAV DESKTOP */}

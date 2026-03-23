@@ -34,7 +34,7 @@ export default function SlugNavbarClient({ isLoggedIn, nome, fotoUrl }: Props) {
           color: "white",
         }}
       >
-        TATTOO<span style={{ color: "#C5A059" }}>AGENDA</span>
+        TATTOO<span className="text-[#818cf8]">AGENDA</span>
       </Link>
 
       {isLoggedIn && nome ? (

@@ -499,7 +499,10 @@ export default function AgendarPage() {
             color: "#e5e7eb",
           }}
         >
-          TATTOOAGENDA
+          <a href="/">
+            TATTOO
+            <span className="text-[#818cf8]">AGENDA</span>
+          </a>
         </span>
       </nav>
 

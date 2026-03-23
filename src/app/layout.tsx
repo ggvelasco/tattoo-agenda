@@ -3,6 +3,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { Inter, Unbounded, Geist, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 import "./globals.css";
 import SmoothScroll from "@/components/SmoothScroll";
@@ -66,6 +67,7 @@ export default function RootLayout({
           <ThemeProvider>
             {children}
             <Analytics />
+            <SpeedInsights />
           </ThemeProvider>
         </TooltipProvider>
       </body>

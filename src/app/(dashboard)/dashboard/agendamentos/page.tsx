@@ -10,10 +10,25 @@ import {
   Phone,
   Filter,
   ImageIcon,
+  User,
+  FileText,
 } from "lucide-react";
-
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { VisuallyHidden } from "radix-ui";
+
+type Anamnese = {
+  alergia: boolean | null;
+  alergia_desc: string;
+  diabetes: boolean | null;
+  condicao_pele: boolean | null;
+  condicao_pele_desc: string;
+  gravida: boolean | null;
+  medicamentos: boolean | null;
+  medicamentos_desc: string;
+  menor_idade: boolean | null;
+  responsavel: string;
+  aceite: boolean;
+};
 
 type Agendamento = {
   id: string;
@@ -24,6 +39,7 @@ type Agendamento = {
   valor: number;
   local_corpo: string | null;
   referencia_url: string | null;
+  anamnese: Anamnese | null;
   clientes: { nome: string; telefone: string; email: string } | null;
   servicos: { nome: string; duracao_minutos: number } | null;
 };
@@ -41,12 +57,248 @@ const WA_ICON = (
   </svg>
 );
 
-export default function AgendamentosPage() {
-  const [imagemAberta, setImagemAberta] = useState<string | null>(null);
+const PERGUNTAS_LABEL: Record<
+  string,
+  { label: string; descKey?: keyof Anamnese }
+> = {
+  alergia: { label: "Alergia", descKey: "alergia_desc" },
+  diabetes: { label: "Diabetes" },
+  condicao_pele: { label: "Condição de pele", descKey: "condicao_pele_desc" },
+  gravida: { label: "Grávida / amamentando" },
+  medicamentos: { label: "Medicamento contínuo", descKey: "medicamentos_desc" },
+  menor_idade: { label: "Menor de idade", descKey: "responsavel" },
+};
 
+/* ── Modal de detalhes ─────────────────────────────────────────── */
+function DetalhesModal({
+  ag,
+  onClose,
+  onStatus,
+}: {
+  ag: Agendamento;
+  onClose: () => void;
+  onStatus: (id: string, status: string) => void;
+}) {
+  const [imagemAberta, setImagemAberta] = useState(false);
+
+  function formatarData(data: string, hora: string) {
+    const date = new Date(data + "T12:00:00");
+    const diaSemana = date.toLocaleDateString("pt-BR", { weekday: "long" });
+    const dataFormatada = date.toLocaleDateString("pt-BR");
+    const horaFormatada = hora.slice(0, 5).replace(":", "h");
+    return `${dataFormatada} · ${diaSemana.charAt(0).toUpperCase() + diaSemana.slice(1)} às ${horaFormatada}`;
+  }
+
+  const waUrl = ag.clientes?.telefone
+    ? `https://wa.me/55${ag.clientes.telefone.replace(/\D/g, "")}?text=${encodeURIComponent(`Olá ${ag.clientes?.nome}! Sobre sua sessão de ${ag.servicos?.nome} no dia ${formatarData(ag.data, ag.hora_inicio)}.`)}`
+    : null;
+
+  return (
+    <>
+      <DialogContent className="max-w-lg max-h-[90vh] flex flex-col overflow-hidden p-0 gap-0">
+        <VisuallyHidden.Root>
+          <DialogTitle>Detalhes do agendamento</DialogTitle>
+        </VisuallyHidden.Root>
+
+        {/* HEADER */}
+        <div className="p-6 pt-12 border-b border-border shrink-0">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <User className="w-4 h-4 text-muted-foreground" />
+                <h2 className="font-semibold text-foreground text-base">
+                  {ag.clientes?.nome}
+                </h2>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                {ag.servicos?.nome} · {ag.servicos?.duracao_minutos}min
+                {ag.valor ? ` · R$ ${Number(ag.valor).toFixed(0)}` : ""}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                <CalendarDays className="w-3 h-3" />
+                {formatarData(ag.data, ag.hora_inicio)}
+              </p>
+            </div>
+            {waUrl && (
+              <a
+                href={waUrl}
+                target="_blank"
+                className="shrink-0 flex items-center gap-1.5 bg-green-500/10 text-green-400 hover:bg-green-500/20 border border-green-500/20 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+              >
+                {WA_ICON} WhatsApp
+              </a>
+            )}
+          </div>
+        </div>
+
+        <div className="p-6 space-y-6 overflow-y-scroll flex-1">
+          {/* DADOS DO CLIENTE */}
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3">
+              Contato
+            </p>
+            <div className="bg-muted/30 rounded-xl p-4 space-y-2">
+              {ag.clientes?.telefone && (
+                <div className="flex items-center gap-2 text-sm">
+                  <Phone className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                  <span className="text-foreground">
+                    {ag.clientes.telefone}
+                  </span>
+                </div>
+              )}
+              {ag.clientes?.email && (
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="text-muted-foreground text-xs w-3.5 text-center">
+                    @
+                  </span>
+                  <span className="text-foreground">{ag.clientes.email}</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* LOCAL DO CORPO */}
+          {ag.local_corpo && (
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3">
+                Local do corpo
+              </p>
+              <div className="bg-muted/30 rounded-xl p-4">
+                <p className="text-sm text-foreground flex items-center gap-2">
+                  <span>📍</span> {ag.local_corpo}
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* REFERÊNCIA */}
+          {ag.referencia_url && (
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3">
+                Referência
+              </p>
+              <button
+                onClick={() => setImagemAberta(true)}
+                className="w-full group relative overflow-hidden rounded-xl border border-border hover:border-primary transition-colors"
+              >
+                <img
+                  src={ag.referencia_url}
+                  alt="Referência"
+                  className="w-full max-h-64 object-cover"
+                />
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
+                  <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-background/80 backdrop-blur-sm rounded-lg px-3 py-1.5 flex items-center gap-1.5 text-xs font-medium">
+                    <ImageIcon className="w-3 h-3" /> Ver em tamanho real
+                  </div>
+                </div>
+              </button>
+            </div>
+          )}
+
+          {/* FICHA DE ANAMNESE */}
+          {ag.anamnese && (
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3 flex items-center gap-1.5">
+                <FileText className="w-3.5 h-3.5" /> Ficha de Anamnese
+              </p>
+              <div className="space-y-2">
+                {Object.entries(PERGUNTAS_LABEL).map(
+                  ([key, { label, descKey }]) => {
+                    const val = ag.anamnese![key as keyof Anamnese];
+                    const desc = descKey
+                      ? (ag.anamnese![descKey] as string)
+                      : null;
+                    if (val === null || val === undefined) return null;
+                    return (
+                      <div
+                        key={key}
+                        className="flex items-start justify-between gap-3 bg-muted/30 rounded-lg px-3 py-2.5"
+                      >
+                        <span className="text-sm text-muted-foreground">
+                          {label}
+                        </span>
+                        <div className="text-right shrink-0">
+                          <span
+                            className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                              val === true
+                                ? "bg-red-500/10 text-red-400 border border-red-500/20"
+                                : "bg-green-500/10 text-green-400 border border-green-500/20"
+                            }`}
+                          >
+                            {val ? "Sim" : "Não"}
+                          </span>
+                          {val && desc && (
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {desc}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  },
+                )}
+                {/* aceite */}
+                <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-green-500/5 border border-green-500/10 mt-1">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-green-400 shrink-0" />
+                  <span className="text-xs text-muted-foreground">
+                    Declaração de veracidade assinada
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* AÇÕES DE STATUS */}
+          {ag.status === "pendente" && (
+            <div className="flex gap-2 pt-2 border-t border-border">
+              <button
+                onClick={() => {
+                  onStatus(ag.id, "confirmado");
+                  onClose();
+                }}
+                className="flex-1 flex items-center justify-center gap-1.5 bg-green-500/10 text-green-400 hover:bg-green-500/20 border border-green-500/20 py-2.5 text-xs font-medium rounded-lg transition-colors"
+              >
+                <CheckCircle2 className="w-3.5 h-3.5" /> Confirmar
+              </button>
+              <button
+                onClick={() => {
+                  onStatus(ag.id, "cancelado");
+                  onClose();
+                }}
+                className="flex-1 flex items-center justify-center gap-1.5 bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/20 py-2.5 text-xs font-medium rounded-lg transition-colors"
+              >
+                <XCircle className="w-3.5 h-3.5" /> Cancelar
+              </button>
+            </div>
+          )}
+        </div>
+      </DialogContent>
+
+      {/* modal da imagem */}
+      <Dialog open={imagemAberta} onOpenChange={setImagemAberta}>
+        <DialogContent className="max-w-2xl p-2">
+          <VisuallyHidden.Root>
+            <DialogTitle>Referência</DialogTitle>
+          </VisuallyHidden.Root>
+          {ag.referencia_url && (
+            <img
+              src={ag.referencia_url}
+              alt="Referência do cliente"
+              className="w-full rounded-lg object-contain max-h-[80vh]"
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
+/* ── Página principal ──────────────────────────────────────────── */
+export default function AgendamentosPage() {
   const [agendamentos, setAgendamentos] = useState<Agendamento[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState("todos");
+  const [agSelecionado, setAgSelecionado] = useState<Agendamento | null>(null);
 
   async function fetchAgendamentos() {
     const supabase = createClient();
@@ -54,24 +306,21 @@ export default function AgendamentosPage() {
       data: { user },
     } = await supabase.auth.getUser();
     if (!user) return;
-
     const { data: perfil } = await supabase
       .from("profissionais")
       .select("id")
       .eq("user_id", user.id)
       .single();
     if (!perfil) return;
-
     const { data } = await supabase
       .from("agendamentos")
       .select(
         `*, clientes(nome, telefone, email), servicos(nome, duracao_minutos)`,
       )
       .eq("profissional_id", perfil.id)
-      .order("data", { ascending: false })
-      .order("hora_inicio", { ascending: false })
+      .order("data", { ascending: true })
+      .order("hora_inicio", { ascending: true })
       .limit(50);
-
     setAgendamentos(data || []);
     setLoading(false);
   }
@@ -98,10 +347,10 @@ export default function AgendamentosPage() {
     tab === "todos"
       ? agendamentos
       : agendamentos.filter((ag) => ag.status === tab);
-  const contagem = (status: string) =>
-    status === "todos"
+  const contagem = (s: string) =>
+    s === "todos"
       ? agendamentos.length
-      : agendamentos.filter((ag) => ag.status === status).length;
+      : agendamentos.filter((ag) => ag.status === s).length;
 
   const statusConfig: Record<
     string,
@@ -196,28 +445,31 @@ export default function AgendamentosPage() {
             return (
               <div
                 key={ag.id}
-                className="bg-card border border-border rounded-xl p-4 hover:border-border/80 transition-colors"
+                onClick={() => setAgSelecionado(ag)}
+                className="bg-card border border-border rounded-xl p-4 hover:border-primary/30 transition-colors cursor-pointer group"
               >
                 <div className="flex items-start justify-between gap-4">
-                  {/* INFO PRINCIPAL */}
+                  {/* INFO */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap mb-1">
-                      <p className="font-semibold text-foreground text-sm">
+                      <p className="font-semibold text-foreground text-sm group-hover:text-primary transition-colors">
                         {ag.clientes?.nome}
                       </p>
                       <span
                         className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium ${cfg.badge}`}
                       >
-                        {cfg.icon}
-                        {cfg.label}
+                        {cfg.icon} {cfg.label}
                       </span>
+                      {ag.anamnese && (
+                        <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                          <FileText className="w-3 h-3" /> Anamnese
+                        </span>
+                      )}
                     </div>
-
                     <p className="text-xs text-muted-foreground mb-1">
                       {ag.servicos?.nome} · {ag.servicos?.duracao_minutos}min
                       {ag.valor ? ` · R$ ${Number(ag.valor).toFixed(0)}` : ""}
                     </p>
-
                     <div className="flex items-center gap-3 flex-wrap">
                       <span className="text-xs text-muted-foreground flex items-center gap-1">
                         <CalendarDays className="w-3 h-3" />
@@ -225,91 +477,63 @@ export default function AgendamentosPage() {
                       </span>
                       {ag.clientes?.telefone && (
                         <span className="text-xs text-muted-foreground flex items-center gap-1">
-                          <Phone className="w-3 h-3" />
-                          {ag.clientes.telefone}
+                          <Phone className="w-3 h-3" /> {ag.clientes.telefone}
                         </span>
                       )}
                     </div>
-
                     {ag.local_corpo && (
-                      <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                      <p className="text-xs text-muted-foreground mt-1">
                         📍 {ag.local_corpo}
                       </p>
                     )}
                   </div>
 
-                  {/* AÇÕES */}
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    {/* THUMBNAIL REFERÊNCIA */}
+                  {/* THUMBNAIL + WA */}
+                  <div className="flex items-center gap-2 shrink-0">
                     {ag.referencia_url && (
-                      <button
-                        onClick={() => setImagemAberta(ag.referencia_url)}
-                        title="Ver referência"
-                        className="relative shrink-0 group"
-                      >
+                      <div className="relative">
                         <img
                           src={ag.referencia_url}
-                          alt="Referência"
-                          className="w-10 h-10 rounded-lg object-cover border border-border group-hover:border-primary transition-colors"
+                          alt="Ref"
+                          className="w-10 h-10 rounded-lg object-cover border border-border"
                         />
-                        <div className="absolute inset-0 rounded-lg bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
+                        <div className="absolute inset-0 rounded-lg bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
                           <ImageIcon className="w-3 h-3 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
                         </div>
-                      </button>
+                      </div>
                     )}
-
-                    {/* WHATSAPP */}
-                    {ag.clientes?.telefone && (
-                      <a
-                        href={`https://wa.me/55${ag.clientes.telefone.replace(/\D/g, "")}?text=${encodeURIComponent(`Olá ${ag.clientes.nome}! Sobre sua sessão de ${ag.servicos?.nome} no dia ${formatarData(ag.data, ag.hora_inicio)}.`)}`}
-                        target="_blank"
-                        className="w-8 h-8 rounded-lg bg-green-500/10 flex items-center justify-center text-green-400 hover:bg-green-500/20 transition-colors"
-                        title="Chamar no WhatsApp"
-                      >
-                        {WA_ICON}
-                      </a>
-                    )}
+                    <a
+                      href={
+                        ag.clientes?.telefone
+                          ? `https://wa.me/55${ag.clientes.telefone.replace(/\D/g, "")}?text=${encodeURIComponent(`Olá ${ag.clientes.nome}! Sobre sua sessão de ${ag.servicos?.nome} no dia ${formatarData(ag.data, ag.hora_inicio)}.`)}`
+                          : "#"
+                      }
+                      target="_blank"
+                      onClick={(e) => e.stopPropagation()}
+                      className="w-8 h-8 rounded-lg bg-green-500/10 flex items-center justify-center text-green-400 hover:bg-green-500/20 transition-colors"
+                    >
+                      {WA_ICON}
+                    </a>
                   </div>
                 </div>
-
-                {/* AÇÕES DE STATUS */}
-                {ag.status === "pendente" && (
-                  <div className="flex gap-2 mt-3 pt-3 border-t border-border">
-                    <button
-                      onClick={() => atualizarStatus(ag.id, "confirmado")}
-                      className="flex-1 flex items-center justify-center gap-1.5 bg-green-500/10 text-green-400 hover:bg-green-500/20 border border-green-500/20 py-2 text-xs font-medium rounded-lg transition-colors"
-                    >
-                      <CheckCircle2 className="w-3.5 h-3.5" /> Confirmar
-                    </button>
-                    <button
-                      onClick={() => atualizarStatus(ag.id, "cancelado")}
-                      className="flex-1 flex items-center justify-center gap-1.5 bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/20 py-2 text-xs font-medium rounded-lg transition-colors"
-                    >
-                      <XCircle className="w-3.5 h-3.5" /> Cancelar
-                    </button>
-                  </div>
-                )}
               </div>
             );
           })}
         </div>
       )}
+
+      {/* MODAL DETALHES */}
       <Dialog
-        open={!!imagemAberta}
-        onOpenChange={(open) => !open && setImagemAberta(null)}
+        open={!!agSelecionado}
+        onOpenChange={(open) => !open && setAgSelecionado(null)}
       >
-        <DialogContent className="max-w-2xl p-2">
-          <VisuallyHidden.Root>
-            <DialogTitle>Imagem de referência</DialogTitle>
-          </VisuallyHidden.Root>
-          {imagemAberta && (
-            <img
-              src={imagemAberta}
-              alt="Referência do cliente"
-              className="w-full rounded-lg object-contain max-h-[80vh]"
-            />
-          )}
-        </DialogContent>
+        {agSelecionado && (
+          <DetalhesModal
+            ag={agSelecionado}
+            onClose={() => setAgSelecionado(null)}
+            onStatus={atualizarStatus}
+          />
+        )}
       </Dialog>
     </div>
   );
