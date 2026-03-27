@@ -11,7 +11,7 @@ export default async function DashboardPage() {
 
   const { data: perfil } = await supabase
     .from("profissionais")
-    .select("id, nome")
+    .select("id, nome, foto_url, slug")
     .eq("user_id", user.id)
     .single();
 
@@ -52,6 +52,8 @@ export default async function DashboardPage() {
   return (
     <DashboardClient
       nomeUsuario={perfil.nome.split(" ")[0]}
+      fotoUrl={perfil.foto_url}
+      slug={perfil.slug}
       agendamentosRaw={agendamentosRaw || []}
       totalPendentes={pendentes?.length ?? 0}
       totalProximas={semana?.length ?? 0}
