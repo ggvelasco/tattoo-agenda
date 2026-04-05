@@ -93,6 +93,29 @@ function DetalhesModal({
     ? `https://wa.me/55${ag.clientes.telefone.replace(/\D/g, "")}?text=${encodeURIComponent(`Olá ${ag.clientes?.nome}! Sobre sua sessão de ${ag.servicos?.nome} no dia ${formatarData(ag.data, ag.hora_inicio)}.`)}`
     : null;
 
+  // monta a mensagem de resumo completa
+  const msgResumo = [
+    `Olá ${ag.clientes?.nome}!`,
+    "", // Linha vazia
+    `Aqui está o resumo da sua sessão:`,
+    "", // Linha vazia
+    `*Serviço:* ${ag.servicos?.nome}`,
+    "", // Linha vazia
+    `*Data:* ${formatarData(ag.data, ag.hora_inicio)}`,
+    "", // Linha vazia
+    `*Duração:* ${formatarDuracao(ag.servicos?.duracao_minutos ?? 0)}`,
+    "", // Linha vazia
+    `*Valor:* R$ ${Number(ag.valor).toFixed(2)}`,
+    "", // Linha vazia
+    ag.local_corpo ? `*Local:* ${ag.local_corpo}` : null,
+    "",
+    `Aguardando sua confirmação!`,
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  const waResumoUrl = `https://wa.me/55${ag.clientes?.telefone?.replace(/\D/g, "")}?text=${encodeURIComponent(msgResumo)}`;
+
   return (
     <>
       <DialogContent className="max-w-lg max-h-[90vh] flex flex-col overflow-hidden p-0 gap-0">
@@ -111,7 +134,8 @@ function DetalhesModal({
                 </h2>
               </div>
               <p className="text-sm text-muted-foreground">
-                {ag.servicos?.nome} · {ag.servicos?.duracao_minutos}min
+                {ag.servicos?.nome} ·{" "}
+                {formatarDuracao(ag.servicos?.duracao_minutos ?? 0)}
                 {ag.valor ? ` · R$ ${Number(ag.valor).toFixed(0)}` : ""}
               </p>
               <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
@@ -120,13 +144,15 @@ function DetalhesModal({
               </p>
             </div>
             {waUrl && (
-              <a
-                href={waUrl}
-                target="_blank"
-                className="shrink-0 flex items-center gap-1.5 bg-green-500/10 text-green-400 hover:bg-green-500/20 border border-green-500/20 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
-              >
-                {WA_ICON} WhatsApp
-              </a>
+              <div className="flex gap-2 shrink-0">
+                <a
+                  href={waResumoUrl}
+                  target="_blank"
+                  className="flex items-center gap-1.5 bg-green-500/10 text-green-400 hover:bg-green-500/20 border border-green-500/20 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+                >
+                  {WA_ICON} Enviar resumo
+                </a>
+              </div>
             )}
           </div>
         </div>
@@ -291,6 +317,12 @@ function DetalhesModal({
       </Dialog>
     </>
   );
+}
+function formatarDuracao(minutos: number): string {
+  if (minutos < 60) return `${minutos}min`;
+  const h = Math.floor(minutos / 60);
+  const m = minutos % 60;
+  return m === 0 ? `${h}h` : `${h}h${m}min`;
 }
 
 /* ── Página principal ──────────────────────────────────────────── */
@@ -467,7 +499,8 @@ export default function AgendamentosPage() {
                       )}
                     </div>
                     <p className="text-xs text-muted-foreground mb-1">
-                      {ag.servicos?.nome} · {ag.servicos?.duracao_minutos}min
+                      {ag.servicos?.nome} ·{" "}
+                      {formatarDuracao(ag.servicos?.duracao_minutos ?? 0)}
                       {ag.valor ? ` · R$ ${Number(ag.valor).toFixed(0)}` : ""}
                     </p>
                     <div className="flex items-center gap-3 flex-wrap">

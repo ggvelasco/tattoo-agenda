@@ -125,7 +125,7 @@ function ServicoCard({
         <div className="flex items-center gap-3 flex-wrap">
           <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
             <Clock className="w-3 h-3" />
-            {s.duracao_minutos}min
+            {formatarDuracao(s.duracao_minutos)}
           </span>
           <span className="inline-flex items-center gap-1 text-xs font-medium text-foreground">
             <Tag className="w-3 h-3" />
@@ -153,6 +153,13 @@ function ServicoCard({
       </div>
     </div>
   );
+}
+
+function formatarDuracao(minutos: number): string {
+  if (minutos < 60) return `${minutos}min`;
+  const h = Math.floor(minutos / 60);
+  const m = minutos % 60;
+  return m === 0 ? `${h}h` : `${h}h${m}min`;
 }
 
 export default function ServicosPage() {

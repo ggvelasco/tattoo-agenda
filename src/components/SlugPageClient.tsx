@@ -20,6 +20,13 @@ type Props = {
   nome: string;
 };
 
+function formatarDuracao(minutos: number): string {
+  if (minutos < 60) return `${minutos}min`;
+  const h = Math.floor(minutos / 60);
+  const m = minutos % 60;
+  return m === 0 ? `${h}h` : `${h}h${m}min`;
+}
+
 export default function SlugPageClient({
   slug,
   servicos,
@@ -138,7 +145,7 @@ export default function SlugPageClient({
                   >
                     schedule
                   </span>
-                  {s.duracao_minutos} min
+                  {formatarDuracao(s.duracao_minutos)}
                 </div>
 
                 {/* BOTÃO */}

@@ -82,6 +82,13 @@ const PERGUNTAS: {
 
 const STEPS = ["Serviço", "Data & hora", "Seus dados"];
 
+function formatarDuracao(minutos: number): string {
+  if (minutos < 60) return `${minutos}min`;
+  const h = Math.floor(minutos / 60);
+  const m = minutos % 60;
+  return m === 0 ? `${h}h` : `${h}h${m}min`;
+}
+
 export default function AgendarPage() {
   const params = useParams();
   const searchParams = useSearchParams();
@@ -642,7 +649,7 @@ export default function AgendarPage() {
                         </p>
                       )}
                       <p style={{ color: "#4b5563", fontSize: "12px" }}>
-                        {s.duracao_minutos} minutos
+                        {formatarDuracao(s.duracao_minutos)}
                       </p>
                     </div>
                     <div
