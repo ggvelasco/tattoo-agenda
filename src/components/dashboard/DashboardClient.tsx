@@ -221,7 +221,6 @@ export default function DashboardClient({
                   borderRadius: "16px",
                   overflow: "hidden",
                   border: `1.5px solid ${ACCENT}30`,
-                  background: "#1a1a1a",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",

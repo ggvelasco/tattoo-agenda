@@ -82,7 +82,7 @@ export function SidebarLeft({
       <SidebarHeader className="p-4 border-b border-sidebar-border">
         <div className="flex items-center gap-3">
           {/* avatar */}
-          <div style={{ position: "relative", shrink: 0 }}>
+          <div style={{ position: "relative", flexShrink: 0 }}>
             <div
               style={{
                 width: "38px",
