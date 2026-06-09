@@ -40,8 +40,9 @@ type Agendamento = {
   local_corpo: string | null;
   referencia_url: string | null;
   anamnese: Anamnese | null;
-  clientes: { nome: string; telefone: string; email: string } | null;
+  clientes: { id?: string; nome: string; telefone: string; email: string } | null;
   servicos: { nome: string; duracao_minutos: number } | null;
+  is_retornando?: boolean;
 };
 
 const TABS = [
@@ -139,7 +140,7 @@ function DetalhesModal({
                 {ag.valor ? ` · R$ ${Number(ag.valor).toFixed(0)}` : ""}
               </p>
               <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
-                <CalendarDays className="w-3 h-3" />
+                <CalendarDays className="w-3.5 h-3.5" />
                 {formatarData(ag.data, ag.hora_inicio)}
               </p>
             </div>
@@ -148,7 +149,7 @@ function DetalhesModal({
                 <a
                   href={waResumoUrl}
                   target="_blank"
-                  className="flex items-center gap-1.5 bg-green-500/10 text-green-400 hover:bg-green-500/20 border border-green-500/20 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+                  className="flex items-center gap-1.5 bg-green-500/10 text-green-400 hover:bg-green-500/20 border border-green-500/20 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors shadow-sm"
                 >
                   {WA_ICON} Enviar resumo
                 </a>
@@ -160,24 +161,24 @@ function DetalhesModal({
         <div className="p-6 space-y-6 overflow-y-scroll flex-1">
           {/* DADOS DO CLIENTE */}
           <div>
-            <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-3">
               Contato
             </p>
-            <div className="bg-muted/30 rounded-xl p-4 space-y-2">
+            <div className="bg-muted/30 border border-border/20 rounded-2xl p-4 space-y-2.5">
               {ag.clientes?.telefone && (
-                <div className="flex items-center gap-2 text-sm">
-                  <Phone className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                  <span className="text-foreground">
+                <div className="flex items-center gap-2.5 text-sm">
+                  <Phone className="w-4 h-4 text-muted-foreground/60 shrink-0" />
+                  <span className="text-foreground font-medium">
                     {ag.clientes.telefone}
                   </span>
                 </div>
               )}
               {ag.clientes?.email && (
-                <div className="flex items-center gap-2 text-sm">
-                  <span className="text-muted-foreground text-xs w-3.5 text-center">
+                <div className="flex items-center gap-2.5 text-sm">
+                  <span className="text-muted-foreground/60 text-xs w-4 text-center font-bold">
                     @
                   </span>
-                  <span className="text-foreground">{ag.clientes.email}</span>
+                  <span className="text-foreground font-medium">{ag.clientes.email}</span>
                 </div>
               )}
             </div>
@@ -186,11 +187,11 @@ function DetalhesModal({
           {/* LOCAL DO CORPO */}
           {ag.local_corpo && (
             <div>
-              <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-3">
                 Local do corpo
               </p>
-              <div className="bg-muted/30 rounded-xl p-4">
-                <p className="text-sm text-foreground flex items-center gap-2">
+              <div className="bg-muted/30 border border-border/20 rounded-2xl p-4">
+                <p className="text-sm text-foreground flex items-center gap-2 font-medium">
                   <span>📍</span> {ag.local_corpo}
                 </p>
               </div>
@@ -200,21 +201,21 @@ function DetalhesModal({
           {/* REFERÊNCIA */}
           {ag.referencia_url && (
             <div>
-              <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-3">
                 Referência
               </p>
               <button
                 onClick={() => setImagemAberta(true)}
-                className="w-full group relative overflow-hidden rounded-xl border border-border hover:border-primary transition-colors"
+                className="w-full group relative overflow-hidden rounded-2xl border border-border hover:border-primary/40 transition-colors shadow-sm"
               >
                 <img
                   src={ag.referencia_url}
                   alt="Referência"
-                  className="w-full max-h-64 object-cover"
+                  className="w-full max-h-64 object-cover group-hover:scale-[1.01] transition-transform duration-200"
                 />
-                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
-                  <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-background/80 backdrop-blur-sm rounded-lg px-3 py-1.5 flex items-center gap-1.5 text-xs font-medium">
-                    <ImageIcon className="w-3 h-3" /> Ver em tamanho real
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/35 transition-colors flex items-center justify-center">
+                  <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-background/90 backdrop-blur-sm rounded-xl px-3.5 py-2 flex items-center gap-1.5 text-xs font-semibold shadow-md">
+                    <ImageIcon className="w-3.5 h-3.5" /> Ver em tamanho real
                   </div>
                 </div>
               </button>
@@ -224,8 +225,8 @@ function DetalhesModal({
           {/* FICHA DE ANAMNESE */}
           {ag.anamnese && (
             <div>
-              <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3 flex items-center gap-1.5">
-                <FileText className="w-3.5 h-3.5" /> Ficha de Anamnese
+              <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-3 flex items-center gap-1.5">
+                <FileText className="w-4 h-4 text-primary" /> Ficha de Anamnese
               </p>
               <div className="space-y-2">
                 {Object.entries(PERGUNTAS_LABEL).map(
@@ -238,14 +239,14 @@ function DetalhesModal({
                     return (
                       <div
                         key={key}
-                        className="flex items-start justify-between gap-3 bg-muted/30 rounded-lg px-3 py-2.5"
+                        className="flex items-start justify-between gap-3 bg-muted/20 border border-border/10 rounded-xl px-3.5 py-3"
                       >
-                        <span className="text-sm text-muted-foreground">
+                        <span className="text-xs font-medium text-muted-foreground mt-0.5">
                           {label}
                         </span>
                         <div className="text-right shrink-0">
                           <span
-                            className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                            className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider ${
                               val === true
                                 ? "bg-red-500/10 text-red-400 border border-red-500/20"
                                 : "bg-green-500/10 text-green-400 border border-green-500/20"
@@ -254,7 +255,7 @@ function DetalhesModal({
                             {val ? "Sim" : "Não"}
                           </span>
                           {val && desc && (
-                            <p className="text-xs text-muted-foreground mt-1">
+                            <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed bg-muted/40 p-2 rounded-lg text-left max-w-[250px]">
                               {desc}
                             </p>
                           )}
@@ -264,9 +265,9 @@ function DetalhesModal({
                   },
                 )}
                 {/* aceite */}
-                <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-green-500/5 border border-green-500/10 mt-1">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-green-400 shrink-0" />
-                  <span className="text-xs text-muted-foreground">
+                <div className="flex items-center gap-2 px-3.5 py-3 rounded-xl bg-green-500/5 border border-green-500/10 mt-1">
+                  <CheckCircle2 className="w-4 h-4 text-green-400 shrink-0" />
+                  <span className="text-xs font-medium text-muted-foreground">
                     Declaração de veracidade assinada
                   </span>
                 </div>
@@ -276,24 +277,24 @@ function DetalhesModal({
 
           {/* AÇÕES DE STATUS */}
           {ag.status === "pendente" && (
-            <div className="flex gap-2 pt-2 border-t border-border">
+            <div className="flex gap-3 pt-3 border-t border-border/40">
               <button
                 onClick={() => {
                   onStatus(ag.id, "confirmado");
                   onClose();
                 }}
-                className="flex-1 flex items-center justify-center gap-1.5 bg-green-500/10 text-green-400 hover:bg-green-500/20 border border-green-500/20 py-2.5 text-xs font-medium rounded-lg transition-colors"
+                className="flex-1 flex items-center justify-center gap-1.5 bg-green-500/10 text-green-400 hover:bg-green-500/20 border border-green-500/20 py-3 text-xs font-bold rounded-xl transition-all shadow-sm"
               >
-                <CheckCircle2 className="w-3.5 h-3.5" /> Confirmar
+                <CheckCircle2 className="w-4 h-4" /> Confirmar Sessão
               </button>
               <button
                 onClick={() => {
                   onStatus(ag.id, "cancelado");
                   onClose();
                 }}
-                className="flex-1 flex items-center justify-center gap-1.5 bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/20 py-2.5 text-xs font-medium rounded-lg transition-colors"
+                className="flex-1 flex items-center justify-center gap-1.5 bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/20 py-3 text-xs font-bold rounded-xl transition-all shadow-sm"
               >
-                <XCircle className="w-3.5 h-3.5" /> Cancelar
+                <XCircle className="w-4 h-4" /> Cancelar
               </button>
             </div>
           )}
@@ -310,7 +311,7 @@ function DetalhesModal({
             <img
               src={ag.referencia_url}
               alt="Referência do cliente"
-              className="w-full rounded-lg object-contain max-h-[80vh]"
+              className="w-full rounded-xl object-contain max-h-[80vh] shadow-xl"
             />
           )}
         </DialogContent>
@@ -318,6 +319,7 @@ function DetalhesModal({
     </>
   );
 }
+
 function formatarDuracao(minutos: number): string {
   if (minutos < 60) return `${minutos}min`;
   const h = Math.floor(minutos / 60);
@@ -347,13 +349,63 @@ export default function AgendamentosPage() {
     const { data } = await supabase
       .from("agendamentos")
       .select(
-        `*, clientes(nome, telefone, email), servicos(nome, duracao_minutos)`,
+        `*, clientes(id, nome, telefone, email), servicos(nome, duracao_minutos)`,
       )
       .eq("profissional_id", perfil.id)
       .order("data", { ascending: true })
       .order("hora_inicio", { ascending: true })
       .limit(50);
-    setAgendamentos(data || []);
+
+    const rawList = (data as any) || [];
+
+    // Obter IDs de clientes únicos para contar agendamentos históricos
+    const clientIds = Array.from(
+      new Set(
+        rawList
+          .map((ag: any) => {
+            const c = Array.isArray(ag.clientes) ? ag.clientes[0] : ag.clientes;
+            return c?.id;
+          })
+          .filter(Boolean)
+      )
+    ) as string[];
+
+    const returningClientIds = new Set<string>();
+    if (clientIds.length > 0) {
+      const { data: counts } = await supabase
+        .from("agendamentos")
+        .select("cliente_id")
+        .in("cliente_id", clientIds)
+        .eq("profissional_id", perfil.id);
+
+      const countMap: Record<string, number> = {};
+      counts?.forEach((c) => {
+        if (c.cliente_id) {
+          countMap[c.cliente_id] = (countMap[c.cliente_id] || 0) + 1;
+        }
+      });
+
+      Object.entries(countMap).forEach(([cid, count]) => {
+        if (count > 1) {
+          returningClientIds.add(cid);
+        }
+      });
+    }
+
+    const agendamentosMapeados = rawList.map((ag: any) => {
+      const clienteObj = Array.isArray(ag.clientes) ? ag.clientes[0] : ag.clientes;
+      const servicoObj = Array.isArray(ag.servicos) ? ag.servicos[0] : ag.servicos;
+      return {
+        ...ag,
+        clientes: clienteObj
+          ? { id: clienteObj.id, nome: clienteObj.nome, telefone: clienteObj.telefone, email: clienteObj.email }
+          : null,
+        servicos: servicoObj ? { nome: servicoObj.nome, duracao_minutos: servicoObj.duracao_minutos } : null,
+        is_retornando: clienteObj?.id ? returningClientIds.has(clienteObj.id) : false,
+      };
+    });
+
+    setAgendamentos(agendamentosMapeados);
     setLoading(false);
   }
 
@@ -390,22 +442,22 @@ export default function AgendamentosPage() {
   > = {
     pendente: {
       label: "Pendente",
-      icon: <Clock className="w-3.5 h-3.5" />,
-      badge: "bg-yellow-500/10 text-yellow-400 border border-yellow-500/20",
+      icon: <Clock className="w-3 h-3" />,
+      badge: "bg-amber-500/10 text-amber-500 border border-amber-500/20",
     },
     confirmado: {
       label: "Confirmado",
-      icon: <CheckCircle2 className="w-3.5 h-3.5" />,
+      icon: <CheckCircle2 className="w-3 h-3" />,
       badge: "bg-green-500/10 text-green-400 border border-green-500/20",
     },
     cancelado: {
       label: "Cancelado",
-      icon: <XCircle className="w-3.5 h-3.5" />,
+      icon: <XCircle className="w-3 h-3" />,
       badge: "bg-red-500/10 text-red-400 border border-red-500/20",
     },
     concluido: {
       label: "Concluído",
-      icon: <CheckCircle2 className="w-3.5 h-3.5" />,
+      icon: <CheckCircle2 className="w-3 h-3" />,
       badge: "bg-blue-500/10 text-blue-400 border border-blue-500/20",
     },
   };
@@ -415,31 +467,37 @@ export default function AgendamentosPage() {
       {/* HEADER */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Agendamentos</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            {agendamentos.length} agendamento
-            {agendamentos.length !== 1 ? "s" : ""} no total
+          <h1 className="text-2xl font-bold text-foreground font-display">Agendamentos</h1>
+          <p className="text-xs text-muted-foreground mt-1.5">
+            Gerencie e organize suas sessões de tatuagem solicitadas
           </p>
         </div>
-        <Filter className="w-4 h-4 text-muted-foreground" />
+        <div className="flex items-center gap-2 bg-muted/30 border border-border/30 rounded-xl px-3 py-1.5 text-xs text-muted-foreground font-medium">
+          <Filter className="w-3.5 h-3.5 text-muted-foreground" />
+          <span>{agendamentos.length} no total</span>
+        </div>
       </div>
 
       {/* TABS */}
-      <div className="grid grid-cols-2 sm:flex gap-1 bg-muted/50 p-1 rounded-lg">
+      <div className="grid grid-cols-2 sm:flex gap-1.5 bg-muted/30 p-1.5 rounded-2xl border border-border/30">
         {TABS.map((t) => (
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
-            className={`whitespace-nowrap px-3 py-1.5 text-xs font-medium rounded-md transition-all flex items-center justify-center gap-1.5 ${
+            className={`whitespace-nowrap px-4 py-2 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 ${
               tab === t.key
-                ? "bg-background text-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
+                ? "bg-background text-foreground shadow-sm border border-border/40"
+                : "text-muted-foreground hover:text-foreground border border-transparent"
             }`}
           >
             {t.label}
             {contagem(t.key) > 0 && (
               <span
-                className={`text-[10px] px-1.5 py-0.5 rounded-full ${tab === t.key ? "bg-muted text-foreground" : "bg-muted/50"}`}
+                className={`text-[10px] px-2 py-0.5 rounded-full font-black ${
+                  tab === t.key 
+                    ? "bg-primary/15 text-primary" 
+                    : "bg-muted-foreground/10 text-muted-foreground"
+                }`}
               >
                 {contagem(t.key)}
               </span>
@@ -454,20 +512,23 @@ export default function AgendamentosPage() {
           {[1, 2, 3].map((i) => (
             <div
               key={i}
-              className="bg-card border border-border rounded-xl p-4 animate-pulse"
+              className="bg-card border border-border rounded-2xl p-5 animate-pulse"
             >
-              <div className="h-4 bg-muted rounded w-1/3 mb-2" />
+              <div className="h-4 bg-muted rounded w-1/3 mb-3" />
               <div className="h-3 bg-muted rounded w-1/2" />
             </div>
           ))}
         </div>
       ) : filtrados.length === 0 ? (
-        <div className="border border-dashed border-border rounded-xl p-12 text-center">
-          <CalendarDays className="w-8 h-8 text-muted-foreground mx-auto mb-3 opacity-40" />
-          <p className="text-sm text-muted-foreground">
+        <div className="border border-dashed border-border rounded-2xl p-16 text-center shadow-sm">
+          <CalendarDays className="w-10 h-10 text-muted-foreground mx-auto mb-4 opacity-30" />
+          <p className="text-sm font-semibold text-foreground mb-1">
+            Nenhum agendamento
+          </p>
+          <p className="text-xs text-muted-foreground">
             {tab === "todos"
-              ? "Nenhum agendamento ainda."
-              : `Nenhum agendamento ${tab}.`}
+              ? "Nenhuma sessão agendada no momento."
+              : `Nenhuma sessão com o status "${tab}" encontrada.`}
           </p>
         </div>
       ) : (
@@ -478,59 +539,67 @@ export default function AgendamentosPage() {
               <div
                 key={ag.id}
                 onClick={() => setAgSelecionado(ag)}
-                className="bg-card border border-border rounded-xl p-4 hover:border-primary/30 transition-colors cursor-pointer group"
+                className="bg-card border border-border rounded-2xl p-5 hover:border-primary/30 hover:bg-muted/5 transition-all duration-200 cursor-pointer shadow-sm group"
               >
-                <div className="flex items-start justify-between gap-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   {/* INFO */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap mb-1">
-                      <p className="font-semibold text-foreground text-sm group-hover:text-primary transition-colors">
+                  <div className="flex-1 min-w-0 space-y-2">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="font-bold text-foreground text-sm group-hover:text-primary transition-colors font-display">
                         {ag.clientes?.nome}
                       </p>
+                      {ag.is_retornando && (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 uppercase tracking-wider">
+                          ✦ Já é cliente
+                        </span>
+                      )}
                       <span
-                        className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium ${cfg.badge}`}
+                        className={`inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider ${cfg.badge}`}
                       >
                         {cfg.icon} {cfg.label}
                       </span>
                       {ag.anamnese && (
-                        <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 uppercase tracking-wider">
                           <FileText className="w-3 h-3" /> Anamnese
                         </span>
                       )}
                     </div>
-                    <p className="text-xs text-muted-foreground mb-1">
-                      {ag.servicos?.nome} ·{" "}
+                    
+                    <p className="text-xs text-muted-foreground">
+                      <strong className="text-foreground font-semibold">{ag.servicos?.nome}</strong> ·{" "}
                       {formatarDuracao(ag.servicos?.duracao_minutos ?? 0)}
                       {ag.valor ? ` · R$ ${Number(ag.valor).toFixed(0)}` : ""}
                     </p>
-                    <div className="flex items-center gap-3 flex-wrap">
-                      <span className="text-xs text-muted-foreground flex items-center gap-1">
-                        <CalendarDays className="w-3 h-3" />
+                    
+                    <div className="flex items-center gap-4 flex-wrap text-xs text-muted-foreground/80">
+                      <span className="flex items-center gap-1.5">
+                        <CalendarDays className="w-3.5 h-3.5 text-muted-foreground/60" />
                         {formatarData(ag.data, ag.hora_inicio)}
                       </span>
                       {ag.clientes?.telefone && (
-                        <span className="text-xs text-muted-foreground flex items-center gap-1">
-                          <Phone className="w-3 h-3" /> {ag.clientes.telefone}
+                        <span className="flex items-center gap-1.5">
+                          <Phone className="w-3.5 h-3.5 text-muted-foreground/60" /> 
+                          {ag.clientes.telefone}
+                        </span>
+                      )}
+                      {ag.local_corpo && (
+                        <span className="flex items-center gap-1">
+                          📍 {ag.local_corpo}
                         </span>
                       )}
                     </div>
-                    {ag.local_corpo && (
-                      <p className="text-xs text-muted-foreground mt-1">
-                        📍 {ag.local_corpo}
-                      </p>
-                    )}
                   </div>
 
                   {/* THUMBNAIL + WA */}
-                  <div className="flex items-center gap-2 shrink-0">
+                  <div className="flex items-center gap-3 shrink-0 self-end sm:self-center">
                     {ag.referencia_url && (
-                      <div className="relative">
+                      <div className="relative overflow-hidden rounded-xl border border-border shadow-inner">
                         <img
                           src={ag.referencia_url}
                           alt="Ref"
-                          className="w-10 h-10 rounded-lg object-cover border border-border"
+                          className="w-12 h-12 object-cover"
                         />
-                        <div className="absolute inset-0 rounded-lg bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/25 transition-colors flex items-center justify-center">
                           <ImageIcon className="w-3 h-3 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
                         </div>
                       </div>
@@ -543,7 +612,7 @@ export default function AgendamentosPage() {
                       }
                       target="_blank"
                       onClick={(e) => e.stopPropagation()}
-                      className="w-8 h-8 rounded-lg bg-green-500/10 flex items-center justify-center text-green-400 hover:bg-green-500/20 transition-colors"
+                      className="w-10 h-10 rounded-xl bg-green-500/10 flex items-center justify-center text-green-400 hover:bg-green-500/20 border border-green-500/10 transition-colors shadow-sm"
                     >
                       {WA_ICON}
                     </a>

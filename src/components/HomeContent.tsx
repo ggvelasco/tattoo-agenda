@@ -34,8 +34,8 @@ function FadeUp({
 }
 
 /* ── WA SVG ── */
-const WaSvg = () => (
-  <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor">
+const WaSvg = ({ size = 11 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
     <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
   </svg>
 );
@@ -150,7 +150,7 @@ function DashboardMockup() {
   return (
     <div
       style={{
-        background: "#0D0D0D",
+        background: "#0A0A0A",
         borderRadius: "16px",
         border: "1px solid #1f1f1f",
         overflow: "hidden",
@@ -159,11 +159,11 @@ function DashboardMockup() {
       }}
     >
       <GridPattern opacity={0.02} />
-      {/* chrome */}
+      {/* chrome bar */}
       <div
         style={{
-          background: "#141414",
-          borderBottom: "1px solid #1a1a1a",
+          background: "#121212",
+          borderBottom: "1px solid #1f1f1f",
           padding: "11px 16px",
           display: "flex",
           alignItems: "center",
@@ -172,14 +172,15 @@ function DashboardMockup() {
         }}
       >
         <div style={{ display: "flex", gap: "6px" }}>
-          {["#2a2a2a", "#2a2a2a", "#2a2a2a"].map((c, i) => (
+          {["#EF4444", "#F59E0B", "#10B981"].map((c, i) => (
             <div
               key={i}
               style={{
-                width: "9px",
-                height: "9px",
+                width: "8px",
+                height: "8px",
                 borderRadius: "50%",
                 background: c,
+                opacity: 0.7,
               }}
             />
           ))}
@@ -192,253 +193,478 @@ function DashboardMockup() {
             padding: "4px 12px",
             textAlign: "center",
             fontSize: "10px",
-            color: "#2a2a2a",
-            border: "1px solid #1a1a1a",
+            color: "#9ca3af",
+            border: "1px solid #1f1f1f",
+            maxWidth: "240px",
+            margin: "0 auto",
           }}
         >
           tattooagenda.ink/dashboard
         </div>
       </div>
-      <div
-        style={{
-          padding: "16px",
-          display: "flex",
-          flexDirection: "column",
-          gap: "10px",
-          position: "relative",
-        }}
-      >
-        {/* stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-          {[
-            {
-              label: "Sessões hoje",
-              value: "3",
-              color: "#3b82f6",
-              sub: "2 confirmadas",
-            },
-            {
-              label: "Pendentes",
-              value: "1",
-              color: "#eab308",
-              sub: "Aguardando",
-            },
-            {
-              label: "Próximo",
-              value: "Rafael Lima",
-              color: "#22c55e",
-              sub: "14:00",
-            },
-            {
-              label: "Próximas",
-              value: "9",
-              color: ACCENT,
-              sub: "A partir de hoje",
-            },
-          ].map((s, i) => (
-            <motion.div
-              key={s.label}
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.15 + i * 0.07, duration: 0.45 }}
-              style={{
-                background: "#191919",
-                border: "1px solid #222",
-                borderRadius: "10px",
-                padding: "12px",
-              }}
-            >
+      
+      {/* Shell body with sidebar + content */}
+      <div style={{ display: "flex" }}>
+        {/* Mock Sidebar Navigation */}
+        <div
+          style={{
+            width: "180px",
+            background: "#0E0E0E",
+            borderRight: "1px solid #1f1f1f",
+            padding: "20px 14px",
+            flexDirection: "column",
+            gap: "24px",
+          }}
+          className="hidden md:flex shrink-0"
+        >
+          {/* Logo mockup */}
+          <div
+            style={{
+              fontFamily: "'Unbounded',sans-serif",
+              fontSize: "11px",
+              fontWeight: 900,
+              letterSpacing: "-.02em",
+              textTransform: "uppercase",
+              color: "#e5e7eb",
+            }}
+          >
+            TATTOO<span style={{ color: "#818cf8" }}>AGENDA</span>
+          </div>
+
+          {/* Navigation Links mockup */}
+          <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+            {[
+              { label: "Início", active: true, icon: "⚡" },
+              { label: "Agendamentos", active: false, icon: "📅" },
+              { label: "Serviços", active: false, icon: "✂️" },
+              { label: "Horários", active: false, icon: "⏰" },
+              { label: "Perfil", active: false, icon: "👤" },
+            ].map((link) => (
               <div
+                key={link.label}
                 style={{
                   display: "flex",
-                  justifyContent: "space-between",
                   alignItems: "center",
-                  marginBottom: "6px",
+                  gap: "8px",
+                  padding: "8px 10px",
+                  borderRadius: "8px",
+                  background: link.active ? "rgba(129,140,248,0.08)" : "transparent",
+                  color: link.active ? "#818cf8" : "#9ca3af",
+                  fontSize: "11px",
+                  fontWeight: link.active ? 700 : 500,
+                  border: link.active ? "1px solid rgba(129,140,248,0.15)" : "1px solid transparent",
+                  cursor: "pointer",
+                }}
+              >
+                <span style={{ fontSize: "12px" }}>{link.icon}</span>
+                <span>{link.label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Dashboard Main Content Mockup */}
+        <div
+          style={{
+            flex: 1,
+            padding: "20px",
+            display: "flex",
+            flexDirection: "column",
+            gap: "14px",
+            position: "relative",
+          }}
+        >
+          {/* Welcome Area Header */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "10px", marginBottom: "4px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+              <div
+                style={{
+                  background: "#181818",
+                  width: "36px",
+                  height: "36px",
+                  borderRadius: "10px",
+                  border: "1.5px solid rgba(129,140,248,0.2)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  position: "relative",
                 }}
               >
                 <span
                   style={{
-                    fontSize: "8px",
-                    textTransform: "uppercase",
-                    letterSpacing: ".1em",
-                    color: "#444",
+                    fontFamily: "'Unbounded',sans-serif",
+                    fontSize: "14px",
+                    fontWeight: 700,
+                    color: "#818cf8",
                   }}
                 >
-                  {s.label}
+                  G
                 </span>
+                {/* online status dot */}
                 <div
                   style={{
-                    width: "6px",
-                    height: "6px",
+                    position: "absolute",
+                    bottom: "-2px",
+                    right: "-2px",
+                    width: "8px",
+                    height: "8px",
                     borderRadius: "50%",
-                    background: s.color,
-                    opacity: 0.6,
+                    background: "#22c55e",
+                    border: "1.5px solid #0A0A0A",
+                    boxShadow: "0 0 4px rgba(34,197,94,0.6)",
                   }}
                 />
               </div>
-              <div
-                style={{
-                  fontSize: s.label === "Próximo" ? "12px" : "22px",
-                  fontWeight: 700,
-                  color: "#e5e7eb",
-                  lineHeight: 1,
-                }}
-              >
-                {s.value}
+
+              <div>
+                <div
+                  style={{
+                    fontSize: "7px",
+                    fontWeight: "bold",
+                    color: "rgba(129,140,248,0.6)",
+                    textTransform: "uppercase",
+                    letterSpacing: ".2em",
+                  }}
+                >
+                  Bom dia
+                </div>
+                <div style={{ fontSize: "14px", fontWeight: "bold", color: "#fff" }}>
+                  Gustavo Velasco
+                </div>
               </div>
-              <div style={{ fontSize: "9px", color: "#555", marginTop: "4px" }}>
-                {s.sub}
-              </div>
-            </motion.div>
-          ))}
-        </div>
-        {/* list */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.55 }}
-          style={{
-            background: "#191919",
-            border: "1px solid #222",
-            borderRadius: "10px",
-            padding: "14px",
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              marginBottom: "12px",
-            }}
-          >
-            <span
+            </div>
+
+            {/* Public Page Link Pill */}
+            <div
               style={{
-                fontSize: "9px",
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                background: "rgba(255,255,255,0.02)",
+                border: "1px solid rgba(255,255,255,0.06)",
+                borderRadius: "99px",
+                padding: "4px 10px",
+                fontSize: "8px",
+                fontWeight: 700,
+                color: "#9ca3af",
                 textTransform: "uppercase",
-                letterSpacing: ".15em",
-                color: "#444",
-                fontWeight: 600,
+                letterSpacing: ".05em",
               }}
             >
-              Agenda de hoje
-            </span>
-            <span style={{ fontSize: "9px", color: "#444" }}>3 sessões</span>
+              <div style={{ width: "4px", height: "4px", borderRadius: "50%", background: "#22c55e" }} />
+              tattooagenda.ink/gus
+            </div>
           </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-            {agendamentos.map((ag) => (
+
+          {/* Daily Progress Bar mockup */}
+          <div style={{ margin: "2px 0" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+              <span style={{ fontSize: "8px", fontWeight: "bold", textTransform: "uppercase", letterSpacing: ".08em", color: "#9ca3af" }}>
+                Progresso do dia
+              </span>
+              <span style={{ fontSize: "8px", fontWeight: 700, color: "#818cf8" }}>
+                1/3 sessões concluídas
+              </span>
+            </div>
+            <div
+              style={{
+                height: "3px",
+                borderRadius: "99px",
+                background: "rgba(255,255,255,0.04)",
+                overflow: "hidden",
+              }}
+            >
               <div
-                key={ag.nome}
                 style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  padding: "9px 10px",
-                  borderRadius: "8px",
-                  border: ag.proximo
-                    ? "1px solid #22c55e28"
-                    : "1px solid #161616",
-                  background: ag.proximo ? "#22c55e05" : "transparent",
-                  opacity: ag.jaPassou ? 0.4 : 1,
-                  transition: "opacity .2s",
+                  height: "100%",
+                  width: "33%",
+                  borderRadius: "99px",
+                  background: "linear-gradient(to right, #3b82f6, #818cf8)",
+                }}
+              />
+            </div>
+          </div>
+
+          {/* stats */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {[
+              {
+                label: "Sessões hoje",
+                value: "3",
+                sub: "2 confirmadas",
+                color: "#3b82f6",
+                bg: "rgba(59,130,246,0.06)",
+                border: "rgba(59,130,246,0.15)",
+              },
+              {
+                label: "Pendentes",
+                value: "1",
+                sub: "Aguardando",
+                color: "#f59e0b",
+                bg: "rgba(245,158,11,0.06)",
+                border: "rgba(245,158,11,0.15)",
+              },
+              {
+                label: "Próximas sessões",
+                value: "9",
+                sub: "A partir de hoje",
+                color: "#818cf8",
+                bg: "rgba(129,140,248,0.06)",
+                border: "rgba(129,140,248,0.15)",
+              },
+            ].map((s, i) => (
+              <motion.div
+                key={s.label}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.15 + i * 0.07, duration: 0.45 }}
+                style={{
+                  background: s.bg,
+                  border: `1px solid ${s.border}`,
+                  borderRadius: "12px",
+                  padding: "12px",
+                  position: "relative",
+                  overflow: "hidden",
                 }}
               >
-                <div
-                  style={{ display: "flex", alignItems: "center", gap: "10px" }}
-                >
-                  <span
-                    style={{
-                      fontSize: "11px",
-                      fontWeight: 700,
-                      color: "#555",
-                      minWidth: "36px",
-                    }}
-                  >
-                    {ag.hora}
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
+                  <span style={{ fontSize: "8px", fontWeight: "bold", textTransform: "uppercase", letterSpacing: ".08em", color: s.color }}>
+                    {s.label}
                   </span>
-                  <div
-                    style={{
-                      width: "1px",
-                      height: "22px",
-                      background: "#1f1f1f",
-                    }}
-                  />
-                  <div>
-                    <div
-                      style={{
-                        fontSize: "11px",
-                        fontWeight: 600,
-                        color: "#e5e7eb",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "6px",
-                      }}
-                    >
-                      {ag.nome}
-                      {ag.proximo && (
-                        <span
-                          style={{
-                            fontSize: "8px",
-                            background: "#22c55e12",
-                            color: "#22c55e",
-                            padding: "2px 7px",
-                            borderRadius: "20px",
-                          }}
-                        >
-                          próximo
-                        </span>
-                      )}
-                    </div>
-                    <div
-                      style={{
-                        fontSize: "9px",
-                        color: "#555",
-                        marginTop: "2px",
-                      }}
-                    >
-                      {ag.servico}
-                    </div>
-                  </div>
                 </div>
-                <div
-                  style={{ display: "flex", alignItems: "center", gap: "6px" }}
-                >
-                  <span
-                    style={{
-                      fontSize: "8px",
-                      padding: "2px 8px",
-                      borderRadius: "20px",
-                      fontWeight: 700,
-                      textTransform: "uppercase",
-                      background:
-                        ag.status === "confirmado" ? "#22c55e12" : "#eab30812",
-                      color: ag.status === "confirmado" ? "#22c55e" : "#eab308",
-                      border:
-                        ag.status === "confirmado"
-                          ? "1px solid #22c55e25"
-                          : "1px solid #eab30825",
-                    }}
-                  >
-                    {ag.status}
-                  </span>
-                  <div
-                    style={{
-                      width: "22px",
-                      height: "22px",
-                      borderRadius: "6px",
-                      background: "#22c55e10",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      color: "#22c55e",
-                    }}
-                  >
-                    <WaSvg />
-                  </div>
+                <div style={{ fontSize: "20px", fontWeight: "900", color: "#fff", lineHeight: 1.2 }}>
+                  {s.value}
                 </div>
-              </div>
+                <div style={{ fontSize: "9px", color: "#777", marginTop: "2px" }}>
+                  {s.sub}
+                </div>
+              </motion.div>
             ))}
           </div>
-        </motion.div>
+
+          {/* Highlighted next client card */}
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.35, duration: 0.45 }}
+            style={{
+              background: "linear-gradient(to bottom right, rgba(34,197,94,0.06), rgba(34,197,94,0.02))",
+              border: "1px solid rgba(34,197,94,0.18)",
+              borderRadius: "12px",
+              padding: "12px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: "10px",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+              <div style={{
+                width: "28px",
+                height: "28px",
+                borderRadius: "8px",
+                background: "rgba(34,197,94,0.1)",
+                border: "1px solid rgba(34,197,94,0.2)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}>
+                <div style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#22c55e", boxShadow: "0 0 6px rgba(34,197,94,0.8)" }} />
+              </div>
+              <div>
+                <span style={{ fontSize: "7px", fontWeight: "bold", letterSpacing: ".1em", color: "#4ade80", textTransform: "uppercase" }}>
+                  Próximo cliente
+                </span>
+                <div style={{ fontSize: "11px", fontWeight: "bold", color: "#fff" }}>
+                  Rafael Lima
+                </div>
+                <div style={{ fontSize: "8px", color: "#9ca3af", marginTop: "1px" }}>
+                  Fine Line · 14:00 · 📍 Antebraço
+                </div>
+              </div>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+              {/* image reference thumbnail mockup */}
+              <div
+                style={{
+                  width: "24px",
+                  height: "24px",
+                  borderRadius: "6px",
+                  background: "#181818",
+                  border: "1px solid rgba(34,197,94,0.2)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: "10px",
+                  opacity: 0.8,
+                }}
+              >
+                🖼️
+              </div>
+              <div style={{
+                width: "24px",
+                height: "24px",
+                borderRadius: "8px",
+                border: "1px solid rgba(34,197,94,0.2)",
+                background: "rgba(34,197,94,0.1)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "#22c55e",
+              }}>
+                <WaSvg size={10} />
+              </div>
+            </div>
+          </motion.div>
+
+          {/* list */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.45 }}
+            style={{
+              background: "#121212",
+              border: "1px solid #1f1f1f",
+              borderRadius: "12px",
+              padding: "12px",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                marginBottom: "10px",
+              }}
+            >
+              <span
+                style={{
+                  fontSize: "9px",
+                  textTransform: "uppercase",
+                  letterSpacing: ".12em",
+                  color: "#818cf8",
+                  fontWeight: 700,
+                }}
+              >
+                Agenda de hoje
+              </span>
+              <span style={{ fontSize: "9px", color: "#9ca3af" }}>3 sessões</span>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+              {agendamentos.map((ag) => (
+                <div
+                  key={ag.nome}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: "8px 10px",
+                    borderRadius: "10px",
+                    border: ag.proximo
+                      ? "1px solid rgba(34,197,94,0.15)"
+                      : "1px solid #1f1f1f",
+                    background: ag.proximo ? "rgba(34,197,94,0.02)" : "rgba(255,255,255,0.01)",
+                    opacity: ag.jaPassou ? 0.45 : 1,
+                    transition: "opacity .2s",
+                  }}
+                >
+                  <div
+                    style={{ display: "flex", alignItems: "center", gap: "8px" }}
+                  >
+                    <span
+                      style={{
+                        fontSize: "10px",
+                        fontWeight: "bold",
+                        color: ag.proximo ? "#22c55e" : "#777",
+                        minWidth: "32px",
+                      }}
+                    >
+                      {ag.hora}
+                    </span>
+                    <div
+                      style={{
+                        width: "1px",
+                        height: "16px",
+                        background: "#1f1f1f",
+                      }}
+                    />
+                    <div>
+                      <div
+                        style={{
+                          fontSize: "11px",
+                          fontWeight: 600,
+                          color: "#fff",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "4px",
+                        }}
+                      >
+                        {ag.nome}
+                        {ag.proximo && (
+                          <span
+                            style={{
+                              fontSize: "7px",
+                              background: "rgba(34,197,94,0.1)",
+                              color: "#22c55e",
+                              padding: "1px 5px",
+                              borderRadius: "10px",
+                            }}
+                          >
+                            próximo
+                          </span>
+                        )}
+                      </div>
+                      <div
+                        style={{
+                          fontSize: "8px",
+                          color: "#9ca3af",
+                          marginTop: "1px",
+                        }}
+                      >
+                        {ag.servico}
+                      </div>
+                    </div>
+                  </div>
+                  <div
+                    style={{ display: "flex", alignItems: "center", gap: "6px" }}
+                  >
+                    <span
+                      style={{
+                        fontSize: "7px",
+                        padding: "2px 6px",
+                        borderRadius: "10px",
+                        fontWeight: 700,
+                        textTransform: "uppercase",
+                        background:
+                          ag.status === "confirmado" ? "rgba(34,197,94,0.1)" : "rgba(245,158,11,0.1)",
+                        color: ag.status === "confirmado" ? "#22c55e" : "#f59e0b",
+                        border:
+                          ag.status === "confirmado"
+                            ? "1px solid rgba(34,197,94,0.15)"
+                            : "1px solid rgba(245,158,11,0.15)",
+                      }}
+                    >
+                      {ag.status}
+                    </span>
+                    <div
+                      style={{
+                        width: "20px",
+                        height: "20px",
+                        borderRadius: "6px",
+                        background: "rgba(34,197,94,0.08)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        color: "#22c55e",
+                      }}
+                    >
+                      <WaSvg size={10} />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        </div>
       </div>
     </div>
   );
@@ -516,7 +742,7 @@ function FeatureCard({
       <p
         style={{
           fontSize: "13px",
-          color: "#6b7280",
+          color: "#9ca3af",
           lineHeight: "1.7",
           fontWeight: 300,
         }}
@@ -560,7 +786,7 @@ function StatCard({
       <div
         style={{
           fontSize: "12px",
-          color: "#4b5563",
+          color: "#9ca3af",
           letterSpacing: ".05em",
           marginTop: "8px",
         }}
@@ -599,9 +825,9 @@ export default function HomeContent({ isLoggedIn }: { isLoggedIn?: boolean }) {
 
         .site-header{position:fixed;top:0;left:0;right:0;z-index:100;border-bottom:1px solid rgba(255,255,255,0.04);background:rgba(10,10,10,0.88);backdrop-filter:blur(20px);padding:18px 32px}
         .header-inner{max-width:1200px;margin:0 auto;display:flex;align-items:center;justify-content:space-between}
-        .nav-link{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.15em;color:#555;text-decoration:none;transition:color .2s}
+        .nav-link{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.15em;color:rgba(255,255,255,0.6);text-decoration:none;transition:color .2s}
         .nav-link:hover{color:#e5e7eb}
-        .btn-ghost{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:#6b7280;text-decoration:none;transition:color .2s}
+        .btn-ghost{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:rgba(255,255,255,0.65);text-decoration:none;transition:color .2s}
         .btn-ghost:hover{color:white}
         .btn-cta{background:#e5e7eb;color:#0A0A0A;padding:10px 22px;border-radius:9999px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;text-decoration:none;font-family:'Inter',sans-serif;transition:all .2s;display:inline-block}
         .btn-cta:hover{background:white;transform:scale(1.04)}
@@ -612,12 +838,12 @@ export default function HomeContent({ isLoggedIn }: { isLoggedIn?: boolean }) {
 
         .hero-cta-primary{background:#e5e7eb;color:#0A0A0A;padding:16px 36px;border-radius:9999px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;text-decoration:none;font-family:'Inter',sans-serif;display:inline-block;transition:all .2s}
         .hero-cta-primary:hover{background:white;transform:translateY(-2px);box-shadow:0 12px 32px rgba(255,255,255,0.1)}
-        .hero-cta-secondary{background:rgba(255,255,255,0.04);color:rgba(255,255,255,0.45);padding:16px 36px;border-radius:9999px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;text-decoration:none;font-family:'Inter',sans-serif;border:1px solid rgba(255,255,255,0.08);display:inline-block;transition:all .2s}
+        .hero-cta-secondary{background:rgba(255,255,255,0.04);color:rgba(255,255,255,0.7);padding:16px 36px;border-radius:9999px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;text-decoration:none;font-family:'Inter',sans-serif;border:1px solid rgba(255,255,255,0.08);display:inline-block;transition:all .2s}
         .hero-cta-secondary:hover{background:rgba(255,255,255,0.07);color:white;border-color:rgba(255,255,255,0.15)}
 
         .marquee-wrap{overflow:hidden;border-top:1px solid rgba(255,255,255,0.04);border-bottom:1px solid rgba(255,255,255,0.04);background:#0D0D0D;padding:18px 0;position:relative}
         .marquee-track{display:flex;gap:48px;width:max-content;animation:marquee 28s linear infinite}
-        .marquee-item{font-family:'Unbounded',sans-serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.15em;color:#1e1e1e;white-space:nowrap;display:flex;align-items:center;gap:48px}
+        .marquee-item{font-family:'Unbounded',sans-serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.15em;color:#2a2a2a;white-space:nowrap;display:flex;align-items:center;gap:48px}
         @keyframes marquee{from{transform:translateX(0)}to{transform:translateX(-50%)}}
 
         .step-card{background:#0D0D0D;border:1px solid #1a1a1a;border-radius:16px;padding:32px;display:flex;gap:24px;align-items:flex-start;transition:all .3s;position:relative;overflow:hidden}
@@ -626,7 +852,7 @@ export default function HomeContent({ isLoggedIn }: { isLoggedIn?: boolean }) {
         .cta-btn-final{background:#e5e7eb;color:#0A0A0A;padding:18px 48px;border-radius:9999px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;text-decoration:none;font-family:'Inter',sans-serif;display:inline-block;transition:all .2s}
         .cta-btn-final:hover{background:white;transform:scale(1.04);box-shadow:0 0 40px rgba(255,255,255,0.08)}
 
-        .footer-link{color:#6a7282;font-size:10px;text-transform:uppercase;letter-spacing:.15em;text-decoration:none;transition:color .2s}
+        .footer-link{color:rgba(255,255,255,0.5);font-size:10px;text-transform:uppercase;letter-spacing:.15em;text-decoration:none;transition:color .2s}
         .footer-link:hover{color:#e5e7eb}
 
         @media(max-width:768px){.site-header{padding:16px 20px}.nav-links{display:none}}
@@ -788,7 +1014,7 @@ export default function HomeContent({ isLoggedIn }: { isLoggedIn?: boolean }) {
             transition={{ duration: 0.7, delay: 0.85 }}
             style={{
               fontSize: "clamp(15px,2vw,18px)",
-              color: "#6b7280",
+              color: "#9ca3af",
               fontWeight: 300,
               maxWidth: "520px",
               margin: "0 auto 40px",
@@ -1299,7 +1525,7 @@ export default function HomeContent({ isLoggedIn }: { isLoggedIn?: boolean }) {
                     <p
                       style={{
                         fontSize: "14px",
-                        color: "#6b7280",
+                        color: "#9ca3af",
                         lineHeight: 1.7,
                         fontWeight: 300,
                       }}
@@ -1560,7 +1786,7 @@ export default function HomeContent({ isLoggedIn }: { isLoggedIn?: boolean }) {
               margin: "0 auto 48px",
               fontSize: "16px",
               fontWeight: 300,
-              color: "#4b5563",
+              color: "#9ca3af",
               lineHeight: 1.7,
             }}
           >
@@ -1597,7 +1823,7 @@ export default function HomeContent({ isLoggedIn }: { isLoggedIn?: boolean }) {
               color: "#e5e7eb",
             }}
           >
-            TATTOO<span style={{ color: "#6a7282" }}>AGENDA</span>
+            TATTOO<span style={{ color: "rgba(255, 255, 255, 0.4)" }}>AGENDA</span>
           </div>
           <div
             style={{
@@ -1620,7 +1846,7 @@ export default function HomeContent({ isLoggedIn }: { isLoggedIn?: boolean }) {
           </div>
           <p
             style={{
-              color: "#6a7282",
+              color: "#888",
               fontSize: "10px",
               textTransform: "uppercase",
               letterSpacing: ".1em",

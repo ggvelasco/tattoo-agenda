@@ -1,9 +1,10 @@
 "use client";
 
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { VisuallyHidden } from "radix-ui";
+import Link from "next/link";
 import {
   CalendarDays,
   Clock,
@@ -11,6 +12,8 @@ import {
   CheckCircle2,
   ImageIcon,
   Zap,
+  Sparkles,
+  ArrowRight,
 } from "lucide-react";
 
 type Agendamento = {
@@ -22,6 +25,7 @@ type Agendamento = {
   referencia_url: string | null;
   clientes: { nome: string; telefone: string } | null;
   servicos: { nome: string; duracao_minutos: number } | null;
+  is_retornando?: boolean;
 };
 
 type Props = {
@@ -31,9 +35,14 @@ type Props = {
   agendamentosRaw: Agendamento[];
   totalPendentes: number;
   totalProximas: number;
+  onboarding?: {
+    hasServices: boolean;
+    hasAvailability: boolean;
+    hasProfile: boolean;
+  };
 };
 
-const ACCENT = "#818cf8";
+const ACCENT = "var(--primary)";
 
 const WaSvg = ({ size = 14 }: { size?: number }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
@@ -58,17 +67,51 @@ export default function DashboardClient({
   nomeUsuario,
   fotoUrl,
   slug,
-  agendamentosRaw,
-  totalPendentes,
-  totalProximas,
+  agendamentosRaw = [],
+  totalPendentes = 0,
+  totalProximas = 0,
+  onboarding = { hasServices: false, hasAvailability: false, hasProfile: false },
 }: Props) {
-  const agora = new Date();
-  const horaAtual = agora.getHours() * 60 + agora.getMinutes();
-  const hora = agora.getHours();
+  const [agora, setAgora] = useState<Date | null>(null);
+
+  useEffect(() => {
+    setAgora(new Date());
+  }, []);
+
+  const now = agora ?? new Date();
+  const horaAtual = now.getHours() * 60 + now.getMinutes();
+  const hora = now.getHours();
   const saudacao =
     hora < 12 ? "Bom dia" : hora < 18 ? "Boa tarde" : "Boa noite";
-  const hoje = `${agora.getFullYear()}-${String(agora.getMonth() + 1).padStart(2, "0")}-${String(agora.getDate()).padStart(2, "0")}`;
+  const hoje = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
   const [imagemAberta, setImagemAberta] = useState<string | null>(null);
+
+  const steps = useMemo(() => [
+    {
+      id: "services",
+      label: "Cadastrar seu primeiro serviço",
+      desc: "Adicione os tipos de tatuagem e serviços que você oferece.",
+      completed: onboarding.hasServices,
+      link: "/dashboard/servicos",
+    },
+    {
+      id: "availability",
+      label: "Configurar horários de atendimento",
+      desc: "Defina os dias da semana e horários em que você está disponível.",
+      completed: onboarding.hasAvailability,
+      link: "/dashboard/horarios",
+    },
+    {
+      id: "profile",
+      label: "Personalizar seu perfil e link público",
+      desc: "Defina foto de perfil e escolha seu link exclusivo (ex: tattooagenda.ink/seu-nome).",
+      completed: onboarding.hasProfile,
+      link: "/dashboard/perfil",
+    },
+  ], [onboarding]);
+
+  const completedCount = useMemo(() => steps.filter((s) => s.completed).length, [steps]);
+  const isAllCompleted = useMemo(() => completedCount === steps.length, [completedCount, steps]);
 
   const agendamentosHoje = useMemo(
     () => agendamentosRaw.filter((ag) => ag.data === hoje),
@@ -135,8 +178,8 @@ export default function DashboardClient({
       value: totalProximas,
       sub: "A partir de hoje",
       color: ACCENT,
-      bg: `rgba(129,140,248,0.08)`,
-      border: `rgba(129,140,248,0.15)`,
+      bg: `color-mix(in srgb, ${ACCENT} 8%, transparent)`,
+      border: `color-mix(in srgb, ${ACCENT} 15%, transparent)`,
       icon: <Zap className="w-4 h-4" style={{ color: ACCENT }} />,
     },
   ];
@@ -160,7 +203,7 @@ export default function DashboardClient({
             width: "240px",
             height: "240px",
             borderRadius: "9999px",
-            background: `radial-gradient(ellipse, ${ACCENT}12 0%, transparent 70%)`,
+            background: `radial-gradient(ellipse, color-mix(in srgb, ${ACCENT} 7%, transparent) 0%, transparent 70%)`,
             pointerEvents: "none",
             filter: "blur(30px)",
           }}
@@ -214,13 +257,14 @@ export default function DashboardClient({
               className="relative shrink-0"
             >
               <div
+                suppressHydrationWarning
                 style={{
                   background: "hsl(var(--muted))",
                   width: "56px",
                   height: "56px",
                   borderRadius: "16px",
                   overflow: "hidden",
-                  border: `1.5px solid ${ACCENT}30`,
+                  border: `1.5px solid color-mix(in srgb, ${ACCENT} 18%, transparent)`,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
@@ -279,7 +323,7 @@ export default function DashboardClient({
                     fontWeight: 700,
                     textTransform: "uppercase",
                     letterSpacing: ".2em",
-                    color: `${ACCENT}80`,
+                    color: `color-mix(in srgb, ${ACCENT} 50%, transparent)`,
                   }}
                 >
                   {saudacao}
@@ -290,7 +334,7 @@ export default function DashboardClient({
                     height: "4px",
                     borderRadius: "9999px",
                     background: ACCENT,
-                    boxShadow: `0 0 6px ${ACCENT}`,
+                    boxShadow: `0 0 6px color-mix(in srgb, ${ACCENT} 60%, transparent)`,
                   }}
                 />
               </motion.div>
@@ -303,7 +347,7 @@ export default function DashboardClient({
                   fontWeight: 900,
                   textTransform: "uppercase",
                   letterSpacing: "-.02em",
-                  color: "#e5e7eb",
+                  color: "var(--foreground)",
                   lineHeight: 1.1,
                 }}
               >
@@ -312,10 +356,9 @@ export default function DashboardClient({
               <motion.p
                 variants={fadeUp}
                 custom={3}
-                className="text-sm mt-1"
-                style={{ color: "#444" }}
+                className="text-sm mt-1 text-muted-foreground"
               >
-                {agora.toLocaleDateString("pt-BR", {
+                {now.toLocaleDateString("pt-BR", {
                   weekday: "long",
                   day: "numeric",
                   month: "long",
@@ -331,39 +374,9 @@ export default function DashboardClient({
               custom={2}
               href={`/${slug}`}
               target="_blank"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "6px",
-                background: "rgba(255,255,255,0.04)",
-                border: "1px solid rgba(255,255,255,0.08)",
-                borderRadius: "9999px",
-                padding: "8px 16px",
-                fontSize: "11px",
-                fontWeight: 600,
-                color: "#555",
-                textDecoration: "none",
-                transition: "all .2s",
-                textTransform: "uppercase",
-                letterSpacing: ".1em",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = "rgba(255,255,255,0.08)";
-                e.currentTarget.style.color = "#e5e7eb";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = "rgba(255,255,255,0.04)";
-                e.currentTarget.style.color = "#555";
-              }}
+              className="flex items-center gap-1.5 bg-muted/40 hover:bg-muted border border-border rounded-full px-4 py-2 text-[11px] font-semibold text-muted-foreground hover:text-foreground transition-all uppercase tracking-wider"
             >
-              <div
-                style={{
-                  width: "6px",
-                  height: "6px",
-                  borderRadius: "9999px",
-                  background: "#22c55e",
-                }}
-              />
+              <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
               tattooagenda.ink/{slug}
             </motion.a>
           )}
@@ -373,15 +386,7 @@ export default function DashboardClient({
         {totalSessoes > 0 && (
           <motion.div variants={fadeUp} custom={4} className="mt-6 relative">
             <div className="flex items-center justify-between mb-2">
-              <span
-                style={{
-                  fontSize: "10px",
-                  fontWeight: 600,
-                  textTransform: "uppercase",
-                  letterSpacing: ".15em",
-                  color: "#333",
-                }}
-              >
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                 Progresso do dia
               </span>
               <span
@@ -417,6 +422,98 @@ export default function DashboardClient({
         )}
       </motion.div>
 
+      {/* ── ONBOARDING CHECKLIST ─────────────────────────────────── */}
+      {!isAllCompleted && (
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="relative overflow-hidden rounded-2xl p-6 bg-gradient-to-br from-indigo-500/[0.04] to-purple-500/[0.04] dark:from-indigo-500/10 dark:to-purple-500/10 border border-indigo-500/20 dark:border-indigo-500/30 shadow-[0_4px_20px_rgba(99,102,241,0.05)]"
+        >
+          {/* background glows */}
+          <div
+            style={{
+              position: "absolute",
+              top: "-50px",
+              left: "-50px",
+              width: "200px",
+              height: "200px",
+              borderRadius: "9999px",
+              background: `radial-gradient(ellipse, rgba(129,140,248,0.06) 0%, transparent 70%)`,
+              pointerEvents: "none",
+              filter: "blur(25px)",
+            }}
+          />
+
+          <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-6 pb-6 border-b border-indigo-500/10">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-indigo-400 animate-pulse" />
+                <h2 className="font-display text-xs font-bold uppercase tracking-wider text-foreground">
+                  Configure seu Estúdio
+                </h2>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Complete os passos abaixo para começar a receber seus agendamentos online.
+              </p>
+            </div>
+            
+            <div className="flex flex-col items-end gap-1.5 shrink-0">
+              <span className="text-xs font-semibold text-muted-foreground">
+                Progresso: {completedCount} de {steps.length} concluídos
+              </span>
+              <div className="w-48 h-2 bg-muted rounded-full overflow-hidden">
+                <motion.div
+                  initial={{ width: 0 }}
+                  animate={{ width: `${(completedCount / steps.length) * 100}%` }}
+                  transition={{ duration: 0.5, ease: "easeOut" }}
+                  className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="relative grid grid-cols-1 md:grid-cols-3 gap-4 pt-6">
+            {steps.map((step, idx) => (
+              <Link
+                key={step.id}
+                href={step.completed ? "#" : step.link}
+                className={`flex flex-col justify-between p-4 rounded-xl border transition-all ${
+                  step.completed
+                    ? "bg-muted/10 border-green-500/20 opacity-70 cursor-default"
+                    : "bg-muted/20 border-indigo-500/10 hover:border-indigo-500/30 cursor-pointer"
+                }`}
+                onClick={(e) => step.completed && e.preventDefault()}
+              >
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    {step.completed ? (
+                      <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0" />
+                    ) : (
+                      <div className="w-4 h-4 rounded-full border border-muted-foreground/40 shrink-0" />
+                    )}
+                    <span className={`text-[10px] font-bold uppercase tracking-wider ${step.completed ? 'text-green-500' : 'text-foreground'}`}>
+                      Passo {idx + 1}
+                    </span>
+                  </div>
+                  <h3 className="text-sm font-semibold text-foreground mb-1">
+                    {step.label}
+                  </h3>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    {step.desc}
+                  </p>
+                </div>
+
+                {!step.completed && (
+                  <div className="flex items-center gap-1 text-[11px] font-bold text-indigo-400 hover:text-indigo-300 mt-4 transition-colors uppercase tracking-wider">
+                    Configurar <ArrowRight className="w-3.5 h-3.5" />
+                  </div>
+                )}
+              </Link>
+            ))}
+          </div>
+        </motion.div>
+      )}
+
       {/* ── STAT CARDS ───────────────────────────────────────────── */}
       <motion.div
         initial="hidden"
@@ -429,13 +526,10 @@ export default function DashboardClient({
             key={s.label}
             variants={fadeUp}
             custom={i}
+            className="relative overflow-hidden rounded-2xl p-5 border shadow-sm transition-all hover:scale-[1.01]"
             style={{
               background: s.bg,
-              border: `1px solid ${s.border}`,
-              borderRadius: "16px",
-              padding: "20px",
-              position: "relative",
-              overflow: "hidden",
+              borderColor: s.border,
             }}
           >
             {/* glow corner */}
@@ -453,44 +547,24 @@ export default function DashboardClient({
             />
             <div className="flex items-center justify-between mb-3">
               <span
-                style={{
-                  fontSize: "9px",
-                  fontWeight: 700,
-                  textTransform: "uppercase",
-                  letterSpacing: ".2em",
-                  color: s.color,
-                  opacity: 0.8,
-                }}
+                className="text-[10px] font-bold uppercase tracking-widest"
+                style={{ color: s.color }}
               >
                 {s.label}
               </span>
               <div
-                style={{
-                  width: "32px",
-                  height: "32px",
-                  borderRadius: "10px",
-                  background: `${s.color}15`,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
+                className="w-9 h-9 rounded-xl flex items-center justify-center"
+                style={{ background: `${s.color}15` }}
               >
                 {s.icon}
               </div>
             </div>
             <div
-              style={{
-                fontSize: "36px",
-                fontWeight: 900,
-                fontFamily: "'Unbounded',sans-serif",
-                color: "#e5e7eb",
-                lineHeight: 1,
-                marginBottom: "6px",
-              }}
+              className="text-3xl font-black font-display text-foreground mb-1.5"
             >
-              {typeof s.value === "number" ? s.value : s.value}
+              {s.value}
             </div>
-            <p style={{ fontSize: "11px", color: "#444" }}>{s.sub}</p>
+            <p className="text-xs text-muted-foreground">{s.sub}</p>
           </motion.div>
         ))}
       </motion.div>
@@ -501,118 +575,65 @@ export default function DashboardClient({
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
-          style={{
-            background:
-              "linear-gradient(135deg, rgba(34,197,94,0.08) 0%, rgba(34,197,94,0.04) 100%)",
-            border: "1px solid rgba(34,197,94,0.2)",
-            borderRadius: "16px",
-            padding: "20px 24px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: "16px",
-            flexWrap: "wrap",
-            position: "relative",
-            overflow: "hidden",
-          }}
+          className="relative overflow-hidden rounded-2xl p-5 md:p-6 bg-gradient-to-br from-green-500/[0.07] to-green-500/[0.03] border border-green-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm"
         >
           <div
+            className="absolute top-0 left-0 right-0 h-[1px]"
             style={{
-              position: "absolute",
-              top: 0,
-              left: 0,
-              right: 0,
-              height: "1px",
               background:
-                "linear-gradient(to right, transparent, rgba(34,197,94,0.4), transparent)",
+                "linear-gradient(to right, transparent, rgba(34,197,94,0.3), transparent)",
             }}
           />
           <div className="flex items-center gap-4">
-            <div
-              style={{
-                width: "44px",
-                height: "44px",
-                borderRadius: "12px",
-                background: "rgba(34,197,94,0.12)",
-                border: "1px solid rgba(34,197,94,0.2)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                flexShrink: 0,
-              }}
-            >
-              <div
-                style={{
-                  width: "8px",
-                  height: "8px",
-                  borderRadius: "9999px",
-                  background: "#22c55e",
-                  boxShadow: "0 0 8px rgba(34,197,94,0.8)",
-                }}
-              />
+            <div className="w-11 h-11 rounded-xl bg-green-500/10 border border-green-500/20 flex items-center justify-center shrink-0">
+              <div className="w-2.5 h-2.5 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.8)]" />
             </div>
             <div>
               <div className="flex items-center gap-2 mb-0.5">
-                <span
-                  style={{
-                    fontSize: "9px",
-                    fontWeight: 700,
-                    textTransform: "uppercase",
-                    letterSpacing: ".2em",
-                    color: "rgba(34,197,94,0.6)",
-                  }}
-                >
+                <span className="text-[9px] font-bold uppercase tracking-widest text-green-400">
                   Próximo cliente
                 </span>
               </div>
-              <p
-                style={{
-                  fontFamily: "'Unbounded',sans-serif",
-                  fontSize: "15px",
-                  fontWeight: 700,
-                  color: "#e5e7eb",
-                }}
-              >
+              <p className="text-base font-bold text-foreground font-display flex items-center gap-2 flex-wrap">
                 {proximoCliente.clientes?.nome}
+                {proximoCliente.is_retornando && (
+                  <span className="text-[9px] font-bold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 rounded-full px-2 py-0.5 uppercase tracking-wider">
+                    ✦ Já é cliente
+                  </span>
+                )}
               </p>
-              <p style={{ fontSize: "12px", color: "#555", marginTop: "2px" }}>
-                {proximoCliente.servicos?.nome} ·{" "}
-                {proximoCliente.hora_inicio.slice(0, 5)}
-                {proximoCliente.local_corpo &&
-                  ` · 📍 ${proximoCliente.local_corpo}`}
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {proximoCliente.servicos?.nome} · {proximoCliente.hora_inicio.slice(0, 5)}
+                {proximoCliente.local_corpo && ` · 📍 ${proximoCliente.local_corpo}`}
               </p>
             </div>
           </div>
-          {proximoCliente.clientes?.telefone && (
-            <a
-              href={`https://wa.me/55${proximoCliente.clientes.telefone.replace(/\D/g, "")}?text=${encodeURIComponent(`Olá ${proximoCliente.clientes.nome}! Confirmando sua sessão de ${proximoCliente.servicos?.nome} hoje às ${proximoCliente.hora_inicio.slice(0, 5)}.`)}`}
-              target="_blank"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "6px",
-                background: "rgba(34,197,94,0.12)",
-                border: "1px solid rgba(34,197,94,0.25)",
-                borderRadius: "9999px",
-                padding: "8px 16px",
-                fontSize: "11px",
-                fontWeight: 700,
-                color: "#22c55e",
-                textDecoration: "none",
-                transition: "all .2s",
-                textTransform: "uppercase",
-                letterSpacing: ".08em",
-              }}
-              onMouseEnter={(e) =>
-                (e.currentTarget.style.background = "rgba(34,197,94,0.2)")
-              }
-              onMouseLeave={(e) =>
-                (e.currentTarget.style.background = "rgba(34,197,94,0.12)")
-              }
-            >
-              <WaSvg size={12} /> WhatsApp
-            </a>
-          )}
+          <div className="flex items-center gap-3 shrink-0 self-end sm:self-center">
+            {proximoCliente.referencia_url && (
+              <button
+                onClick={() => setImagemAberta(proximoCliente.referencia_url)}
+                className="relative rounded-xl overflow-hidden w-10 h-10 border border-green-500/20 shadow-inner shrink-0 group bg-muted"
+              >
+                <img
+                  src={proximoCliente.referencia_url}
+                  alt="Referência"
+                  className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-200"
+                />
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
+                  <ImageIcon className="w-3.5 h-3.5 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
+              </button>
+            )}
+            {proximoCliente.clientes?.telefone && (
+              <a
+                href={`https://wa.me/55${proximoCliente.clientes.telefone.replace(/\D/g, "")}?text=${encodeURIComponent(`Olá ${proximoCliente.clientes.nome}! Confirmando sua sessão de ${proximoCliente.servicos?.nome} hoje às ${proximoCliente.hora_inicio.slice(0, 5)}.`)}`}
+                target="_blank"
+                className="inline-flex items-center justify-center gap-1.5 bg-green-500/10 text-green-400 hover:bg-green-500/20 border border-green-500/20 px-4 py-2 rounded-full text-[11px] font-bold transition-all uppercase tracking-wider shrink-0 select-none shadow-sm"
+              >
+                <WaSvg size={12} /> WhatsApp
+              </a>
+            )}
+          </div>
         </motion.div>
       )}
 
@@ -625,16 +646,7 @@ export default function DashboardClient({
           className="flex items-center justify-between"
         >
           <div className="flex items-center gap-3">
-            <h2
-              style={{
-                fontFamily: "'Unbounded',sans-serif",
-                fontSize: "11px",
-                fontWeight: 700,
-                textTransform: "uppercase",
-                letterSpacing: ".2em",
-                color: "#333",
-              }}
-            >
+            <h2 className="font-display text-xs font-bold uppercase tracking-widest text-muted-foreground">
               Agenda de hoje
             </h2>
             {agendamentosHoje.length > 0 && (
@@ -642,9 +654,9 @@ export default function DashboardClient({
                 style={{
                   fontSize: "10px",
                   fontWeight: 700,
-                  background: `${ACCENT}15`,
+                  background: `color-mix(in srgb, ${ACCENT} 8%, transparent)`,
                   color: ACCENT,
-                  border: `1px solid ${ACCENT}25`,
+                  border: `1px solid color-mix(in srgb, ${ACCENT} 15%, transparent)`,
                   borderRadius: "9999px",
                   padding: "2px 10px",
                 }}
@@ -657,7 +669,7 @@ export default function DashboardClient({
         </motion.div>
 
         {agendamentosOrdenados.length > 0 ? (
-          <div className="space-y-2">
+          <div className="space-y-2.5">
             {agendamentosOrdenados.map((ag, i) => {
               const [h, m] = ag.hora_inicio.split(":").map(Number);
               const jaPassou = h * 60 + m < horaAtual;
@@ -673,91 +685,51 @@ export default function DashboardClient({
                     delay: 0.4 + i * 0.06,
                     ease: [0.22, 1, 0.36, 1],
                   }}
-                  style={{
-                    background: isProximo
-                      ? "rgba(34,197,94,0.05)"
+                  className={`border rounded-2xl p-4 flex items-center justify-between gap-4 transition-all duration-200 ${
+                    isProximo
+                      ? "bg-green-500/[0.04] border-green-500/20 shadow-sm"
                       : jaPassou
-                        ? "transparent"
-                        : "rgba(255,255,255,0.02)",
-                    border: isProximo
-                      ? "1px solid rgba(34,197,94,0.2)"
-                      : jaPassou
-                        ? "1px solid rgba(255,255,255,0.04)"
-                        : "1px solid rgba(255,255,255,0.06)",
-                    borderRadius: "14px",
-                    padding: "14px 16px",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    gap: "12px",
-                    opacity: jaPassou ? 0.45 : 1,
-                    transition: "all .2s",
-                  }}
+                        ? "bg-transparent border-border/20 opacity-45"
+                        : "bg-muted/15 border-border/40 hover:border-primary/25 hover:bg-muted/20"
+                  }`}
                 >
                   {/* horário + linha + info */}
-                  <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <div style={{ minWidth: "44px", textAlign: "center" }}>
+                  <div className="flex items-center gap-4 flex-1 min-w-0">
+                    <div className="w-12 text-center shrink-0">
                       <span
-                        style={{
-                          fontFamily: "'Unbounded',sans-serif",
-                          fontSize: "13px",
-                          fontWeight: 700,
-                          color: isProximo
-                            ? "#22c55e"
+                        className={`text-sm font-bold font-display ${
+                          isProximo
+                            ? "text-green-400"
                             : jaPassou
-                              ? "#333"
-                              : "#6b7280",
-                        }}
+                              ? "text-muted-foreground/45"
+                              : "text-muted-foreground"
+                        }`}
                       >
                         {ag.hora_inicio.slice(0, 5)}
                       </span>
                     </div>
                     <div
-                      style={{
-                        width: "1px",
-                        height: "32px",
-                        background: isProximo
-                          ? "rgba(34,197,94,0.3)"
-                          : "rgba(255,255,255,0.06)",
-                        flexShrink: 0,
-                      }}
+                      className={`w-[1px] h-8 shrink-0 ${
+                        isProximo ? "bg-green-500/30" : "bg-border/40"
+                      }`}
                     />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span
-                          style={{
-                            fontSize: "13px",
-                            fontWeight: 600,
-                            color: "#e5e7eb",
-                          }}
-                        >
+                        <span className="text-sm font-bold text-foreground font-display">
                           {ag.clientes?.nome}
                         </span>
+                        {ag.is_retornando && (
+                          <span className="text-[9px] font-bold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 rounded-full px-2 py-0.5 uppercase tracking-wider">
+                            ✦ Já é cliente
+                          </span>
+                        )}
                         {isProximo && (
-                          <span
-                            style={{
-                              fontSize: "8px",
-                              fontWeight: 700,
-                              background: "rgba(34,197,94,0.15)",
-                              color: "#22c55e",
-                              border: "1px solid rgba(34,197,94,0.25)",
-                              borderRadius: "9999px",
-                              padding: "2px 8px",
-                              textTransform: "uppercase",
-                              letterSpacing: ".1em",
-                            }}
-                          >
+                          <span className="text-[9px] font-bold bg-green-500/10 text-green-400 border border-green-500/20 rounded-full px-2 py-0.5 uppercase tracking-wider">
                             próximo
                           </span>
                         )}
                       </div>
-                      <p
-                        style={{
-                          fontSize: "11px",
-                          color: "#3a3a3a",
-                          marginTop: "2px",
-                        }}
-                      >
+                      <p className="text-xs text-muted-foreground mt-0.5">
                         {ag.servicos?.nome}
                         {ag.local_corpo && ` · 📍 ${ag.local_corpo}`}
                       </p>
@@ -765,86 +737,30 @@ export default function DashboardClient({
                   </div>
 
                   {/* ações */}
-                  <div className="flex items-center gap-2 shrink-0">
+                  <div className="flex items-center gap-2.5 shrink-0">
                     {/* referência */}
                     {ag.referencia_url && (
                       <button
                         onClick={() => setImagemAberta(ag.referencia_url)}
-                        style={{
-                          position: "relative",
-                          borderRadius: "8px",
-                          overflow: "hidden",
-                          width: "32px",
-                          height: "32px",
-                          border: "1px solid rgba(255,255,255,0.08)",
-                          flexShrink: 0,
-                          cursor: "pointer",
-                        }}
-                        className="group"
+                        className="relative rounded-xl overflow-hidden w-9 h-9 border border-border shrink-0 shadow-sm group bg-muted"
                       >
                         <img
                           src={ag.referencia_url}
                           alt="ref"
-                          style={{
-                            width: "100%",
-                            height: "100%",
-                            objectFit: "cover",
-                          }}
+                          className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-200"
                         />
-                        <div
-                          style={{
-                            position: "absolute",
-                            inset: 0,
-                            background: "rgba(0,0,0,0)",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            transition: "background .2s",
-                          }}
-                          onMouseEnter={(e) =>
-                            (e.currentTarget.style.background =
-                              "rgba(0,0,0,0.4)")
-                          }
-                          onMouseLeave={(e) =>
-                            (e.currentTarget.style.background = "rgba(0,0,0,0)")
-                          }
-                        >
-                          <ImageIcon
-                            style={{
-                              width: "10px",
-                              height: "10px",
-                              color: "white",
-                              opacity: 0,
-                            }}
-                          />
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
+                          <ImageIcon className="w-3.5 h-3.5 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
                         </div>
                       </button>
                     )}
 
                     {/* status */}
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "4px",
-                      }}
-                    >
+                    <div className="flex items-center shrink-0">
                       {ag.status === "confirmado" ? (
-                        <CheckCircle2
-                          style={{
-                            width: "14px",
-                            height: "14px",
-                            color: "#22c55e",
-                          }}
-                        />
+                        <CheckCircle2 className="w-4 h-4 text-green-400" />
                       ) : (
-                        <AlertCircle
-                          style={{
-                            width: "14px",
-                            height: "14px",
-                            color: "#f59e0b",
-                          }}
-                        />
+                        <AlertCircle className="w-4 h-4 text-amber-500" />
                       )}
                     </div>
 
@@ -853,28 +769,7 @@ export default function DashboardClient({
                       <a
                         href={`https://wa.me/55${ag.clientes.telefone.replace(/\D/g, "")}?text=${encodeURIComponent(`Olá ${ag.clientes.nome}! Sobre sua sessão de ${ag.servicos?.nome} hoje às ${ag.hora_inicio.slice(0, 5)}.`)}`}
                         target="_blank"
-                        style={{
-                          width: "32px",
-                          height: "32px",
-                          borderRadius: "9px",
-                          background: "rgba(34,197,94,0.1)",
-                          border: "1px solid rgba(34,197,94,0.15)",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          color: "#22c55e",
-                          textDecoration: "none",
-                          transition: "background .2s",
-                          flexShrink: 0,
-                        }}
-                        onMouseEnter={(e) =>
-                          (e.currentTarget.style.background =
-                            "rgba(34,197,94,0.2)")
-                        }
-                        onMouseLeave={(e) =>
-                          (e.currentTarget.style.background =
-                            "rgba(34,197,94,0.1)")
-                        }
+                        className="w-9 h-9 rounded-xl bg-green-500/10 border border-green-500/15 flex items-center justify-center text-green-400 hover:bg-green-500/20 transition-colors shrink-0 shadow-sm"
                       >
                         <WaSvg size={12} />
                       </a>
@@ -889,27 +784,23 @@ export default function DashboardClient({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.5 }}
-            style={{
-              border: "1px dashed rgba(255,255,255,0.06)",
-              borderRadius: "16px",
-              padding: "48px 24px",
-              textAlign: "center",
-            }}
+            className="border border-dashed border-border rounded-2xl p-12 text-center"
           >
-            <CalendarDays
-              style={{
-                width: "32px",
-                height: "32px",
-                color: "#2a2a2a",
-                margin: "0 auto 12px",
-              }}
-            />
-            <p style={{ fontSize: "13px", color: "#333" }}>
+            <CalendarDays className="w-8 h-8 text-muted-foreground/30 mx-auto mb-3" />
+            <p className="text-sm text-muted-foreground font-medium">
               Nenhuma sessão hoje.
             </p>
-            <p style={{ fontSize: "11px", color: "#252525", marginTop: "4px" }}>
-              Aproveite para descansar 🎨
-            </p>
+            {!isAllCompleted ? (
+              <div className="mt-2 max-w-sm mx-auto space-y-3">
+                <p className="text-xs text-muted-foreground">
+                  Seu estúdio ainda não está pronto para receber agendamentos. Complete os primeiros passos na lista acima para começar!
+                </p>
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground/60 mt-1">
+                Aproveite para descansar 🎨
+              </p>
+            )}
           </motion.div>
         )}
       </div>

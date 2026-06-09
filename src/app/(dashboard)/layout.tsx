@@ -6,7 +6,6 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { SidebarLeft } from "@/components/sidebar-left";
-import SidebarRightWrapper from "@/components/dashboard/SidebarRightWrapper";
 import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler";
 
 export default async function DashboardLayout({
@@ -34,9 +33,6 @@ export default async function DashboardLayout({
         </header>
         <main className="flex-1 p-6">{children}</main>
       </SidebarInset>
-      <div className="hidden lg:block">
-        <SidebarRightWrapper />
-      </div>
     </SidebarProvider>
   );
 }

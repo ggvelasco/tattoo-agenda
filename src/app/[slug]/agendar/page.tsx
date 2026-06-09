@@ -7,6 +7,18 @@ import { Calendar } from "@/components/ui/calendar";
 import { ptBR } from "date-fns/locale";
 import Link from "next/link";
 import { toast, Toaster } from "sonner";
+import {
+  Clock,
+  Calendar as CalendarIcon,
+  User,
+  Phone,
+  Mail,
+  FileText,
+  Upload,
+  ArrowRight,
+  ChevronLeft,
+  CheckCircle2,
+} from "lucide-react";
 
 type Servico = {
   id: string;
@@ -14,6 +26,7 @@ type Servico = {
   descricao: string | null;
   duracao_minutos: number;
   preco: number;
+  tipo_preco: string;
 };
 type Profissional = { id: string; nome: string; slug: string };
 
@@ -67,8 +80,7 @@ const PERGUNTAS: {
   { key: "gravida", label: "Está grávida ou amamentando?" },
   {
     key: "medicamentos",
-    label:
-      "Faz uso contínuo de algum medicamento? (anticoagulantes, antidepressivos, isotretinoína...)",
+    label: "Faz uso contínuo de algum medicamento? (anticoagulantes, etc)",
     descKey: "medicamentos_desc",
     descPlaceholder: "Qual medicamento?",
   },
@@ -87,6 +99,13 @@ function formatarDuracao(minutos: number): string {
   const h = Math.floor(minutos / 60);
   const m = minutos % 60;
   return m === 0 ? `${h}h` : `${h}h${m}min`;
+}
+
+function formatarPreco(s: Servico) {
+  if (s.tipo_preco === "sob_consulta") return "Sob consulta";
+  if (s.tipo_preco === "a_partir_de")
+    return `A partir de R$ ${Number(s.preco).toFixed(0)}`;
+  return `R$ ${Number(s.preco).toFixed(0)}`;
 }
 
 export default function AgendarPage() {
@@ -115,6 +134,9 @@ export default function AgendarPage() {
   const [salvando, setSalvando] = useState(false);
   const [concluido, setConcluido] = useState(false);
   const [localCorpo, setLocalCorpo] = useState("");
+  const [tamanhoTattoo, setTamanhoTattoo] = useState("");
+  const [uploadedRefUrl, setUploadedRefUrl] = useState<string | null>(null);
+  const [whatsappProfissional, setWhatsappProfissional] = useState("");
   const [referenciaFile, setReferenciaFile] = useState<File | null>(null);
   const [referenciaPreview, setReferenciaPreview] = useState<string | null>(
     null,
@@ -129,6 +151,8 @@ export default function AgendarPage() {
     !uploadando &&
     !!nomeCliente &&
     !!telefone &&
+    !!localCorpo &&
+    !!tamanhoTattoo &&
     anamneseCompleta &&
     anamnese.aceite;
 
@@ -140,11 +164,12 @@ export default function AgendarPage() {
     const supabase = createClient();
     const { data: perfil } = await supabase
       .from("profissionais")
-      .select("id, nome, slug")
+      .select("id, nome, slug, whatsapp")
       .eq("slug", slug)
       .single();
     if (!perfil) return;
     setProfissional(perfil);
+    setWhatsappProfissional(perfil.whatsapp || "");
     const { data: svcs } = await supabase
       .from("servicos")
       .select("*")
@@ -269,6 +294,7 @@ export default function AgendarPage() {
           .from("referencias")
           .getPublicUrl(uploadData.path);
         referenciaUrl = urlData.publicUrl;
+        setUploadedRefUrl(referenciaUrl);
       }
       setUploadando(false);
     }
@@ -286,7 +312,7 @@ export default function AgendarPage() {
         nome: nomeCliente,
         telefone,
         email,
-        local_corpo: localCorpo,
+        local_corpo: tamanhoTattoo ? `${localCorpo} (${tamanhoTattoo}cm)` : localCorpo || null,
         referencia_url: referenciaUrl,
         anamnese,
       }),
@@ -321,253 +347,146 @@ export default function AgendarPage() {
     setConcluido(true);
   }
 
-  if (loading)
+  if (loading) {
     return (
-      <div
-        style={{
-          minHeight: "100vh",
-          backgroundColor: "#0A0A0A",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        <div
-          style={{
-            width: "24px",
-            height: "24px",
-            border: "2px solid #2a2a2a",
-            borderTopColor: "#9ca3af",
-            borderRadius: "9999px",
-            animation: "spin .7s linear infinite",
-          }}
-        />
-        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center">
+        <div className="w-6 h-6 border-2 border-border border-t-muted-foreground rounded-full animate-spin" />
       </div>
     );
+  }
 
-  if (concluido)
+  if (concluido) {
+    const formatarData = (data: Date) => {
+      return data.toLocaleDateString("pt-BR");
+    };
+
+    const msgBriefing = [
+      `Olá ${profissional?.nome}! Solicitei um agendamento pelo TattooAgenda. Aqui está o meu briefing:`,
+      "",
+      `*Cliente:* ${nomeCliente}`,
+      `*Serviço:* ${servicoSelecionado?.nome}`,
+      `*Data/Hora:* ${dataSelecionada ? formatarData(dataSelecionada) : ""} às ${horarioSelecionado}`,
+      `*Especificações:* ${localCorpo} - ${tamanhoTattoo}cm`,
+      uploadedRefUrl ? `*Referência:* ${uploadedRefUrl}` : null,
+      `*Ficha de Anamnese:* Preenchida e assinada`,
+      "",
+      `Vamos conversar sobre a arte?`
+    ]
+      .filter(Boolean)
+      .join("\n");
+
+    const waBriefingUrl = whatsappProfissional
+      ? `https://wa.me/55${whatsappProfissional.replace(/\D/g, "")}?text=${encodeURIComponent(msgBriefing)}`
+      : null;
+
     return (
-      <div
-        style={{
-          minHeight: "100vh",
-          backgroundColor: "#0A0A0A",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          padding: "24px",
-        }}
-      >
-        <style>{`
-        @keyframes fadeUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
-        @keyframes scaleIn { from { opacity:0; transform:scale(.7); } to { opacity:1; transform:scale(1); } }
-        .done-icon { animation: scaleIn .4s cubic-bezier(.34,1.56,.64,1) both; }
-        .done-text { animation: fadeUp .4s .15s ease both; }
-        .done-sub  { animation: fadeUp .4s .25s ease both; }
-        .done-link { animation: fadeUp .4s .35s ease both; }
-      `}</style>
-        <div style={{ textAlign: "center", maxWidth: "360px" }}>
-          <div
-            className="done-icon"
-            style={{
-              width: "64px",
-              height: "64px",
-              borderRadius: "9999px",
-              border: "1px solid rgba(255,255,255,0.12)",
-              backgroundColor: "rgba(255,255,255,0.04)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              margin: "0 auto 24px",
-              fontSize: "22px",
-              color: "#e5e7eb",
-            }}
-          >
+      <div className="min-h-screen bg-[#0A0A0A] text-foreground flex items-center justify-center p-6">
+        <div className="max-w-md w-full text-center space-y-8 bg-card border border-border/85 p-8 rounded-3xl shadow-xl relative overflow-hidden">
+          {/* Glows */}
+          <div className="absolute -top-20 -right-20 w-44 h-44 rounded-full bg-primary/10 blur-3xl pointer-events-none" />
+          <div className="absolute -bottom-20 -left-20 w-44 h-44 rounded-full bg-indigo-500/5 blur-3xl pointer-events-none" />
+
+          <div className="w-16 h-16 rounded-full bg-green-500/10 border border-green-500/20 flex items-center justify-center mx-auto text-green-400 text-2xl shadow-inner animate-pulse">
             ✓
           </div>
-          <h2
-            className="done-text"
-            style={{
-              fontFamily: "'Unbounded', serif",
-              fontSize: "20px",
-              fontWeight: 900,
-              textTransform: "uppercase",
-              color: "#e5e7eb",
-              marginBottom: "12px",
-            }}
-          >
-            Solicitação enviada!
-          </h2>
-          <p
-            className="done-sub"
-            style={{
-              color: "#6b7280",
-              fontSize: "14px",
-              lineHeight: "1.7",
-              marginBottom: "32px",
-              fontFamily: "'Inter', sans-serif",
-              fontWeight: 300,
-            }}
-          >
-            {profissional?.nome} entrará em contato pelo WhatsApp para confirmar
-            sua sessão.
-          </p>
-          <Link
-            href={`/${slug}`}
-            className="done-link"
-            style={{
-              color: "#4b5563",
-              fontSize: "11px",
-              textTransform: "uppercase",
-              letterSpacing: ".12em",
-              textDecoration: "none",
-              fontFamily: "'Inter', sans-serif",
-              display: "inline-block",
-            }}
-          >
-            ← Voltar ao perfil
-          </Link>
+
+          <div className="space-y-3">
+            <h2 className="font-display text-lg font-black uppercase tracking-wider text-foreground">
+              Solicitação Enviada!
+            </h2>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Sua sessão foi pré-agendada no sistema. Agora, clique abaixo para enviar o briefing completo ao <strong>{profissional?.nome}</strong> e alinhar os detalhes da arte!
+            </p>
+          </div>
+
+          {waBriefingUrl && (
+            <div className="pt-2">
+              <a
+                href={waBriefingUrl}
+                target="_blank"
+                className="w-full inline-flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 text-white font-bold py-3.5 px-6 rounded-2xl transition-all shadow-md hover:scale-[1.01] uppercase tracking-wider text-xs select-none"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="shrink-0">
+                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+                </svg>
+                Enviar Briefing no WhatsApp
+              </a>
+            </div>
+          )}
+
+          <div className="pt-4 border-t border-border/40">
+            <Link
+              href={`/${slug}`}
+              className="text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors uppercase tracking-widest"
+            >
+              ← Voltar ao perfil
+            </Link>
+          </div>
         </div>
       </div>
     );
+  }
 
   return (
-    <div
-      style={{ minHeight: "100vh", backgroundColor: "#0A0A0A", color: "white" }}
-    >
-      <Toaster theme="system" position="top-center" />
-      <style>{`
-        *, *::before, *::after { box-sizing: border-box; margin:0; padding:0; }
-        body { font-family:'Inter',sans-serif; -webkit-font-smoothing:antialiased; }
-        .font-display { font-family:'Unbounded',serif; }
-        @keyframes fadeUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
-        .fade-in   { animation: fadeUp .45s ease both; }
-        .fade-in-2 { animation: fadeUp .45s .08s ease both; }
-        .fade-in-3 { animation: fadeUp .45s .16s ease both; }
-        .step-circle { width:28px; height:28px; border-radius:9999px; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; font-family:'Unbounded',serif; transition: all .3s ease; }
-        .step-done   { background:#e5e7eb; color:#0A0A0A; }
-        .step-active { background:#1c1c1c; color:#e5e7eb; border:1.5px solid #e5e7eb; }
-        .step-idle   { background:#141414; color:#4b5563; border:1.5px solid #262626; }
-        .service-opt { width:100%; text-align:left; padding:20px; border-radius:14px; border:1px solid #222; background:#141414; cursor:pointer; transition: border-color .2s, background .2s, transform .2s, box-shadow .2s; display:block; }
-        .service-opt:hover { border-color:#3a3a3a; background:#181818; transform:translateY(-1px); box-shadow:0 8px 24px rgba(0,0,0,0.35); }
-        .service-opt.selected { border-color:#9ca3af; background:#1a1a1a; }
-        .slot-btn { padding:10px 0; border-radius:10px; font-size:12px; font-weight:600; letter-spacing:.03em; border:1px solid #222; background:#141414; color:#6b7280; cursor:pointer; transition: all .2s; font-family:'Inter',sans-serif; }
-        .slot-btn:hover:not(:disabled) { border-color:#6b7280; color:#e5e7eb; background:#1c1c1c; }
-        .slot-btn.selected { border-color:#e5e7eb; background:#1c1c1c; color:#e5e7eb; }
-        .field-input { width:100%; background:#141414; border:1px solid #2a2a2a; color:#e5e7eb; font-size:14px; padding:13px 16px; border-radius:12px; font-family:'Inter',sans-serif; font-weight:300; transition: border-color .2s, background .2s; outline:none; }
-        .field-input:focus { border-color:#6b7280; background:#181818; }
-        .field-input::placeholder { color:#4b5563; }
-        .btn-primary { flex:1; padding:14px; border-radius:9999px; background:#e5e7eb; color:#0A0A0A; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.12em; border:none; cursor:pointer; font-family:'Inter',sans-serif; transition: background .2s, transform .15s, box-shadow .2s; }
-        .btn-primary:hover { background:white; transform:translateY(-1px); box-shadow:0 8px 20px rgba(255,255,255,0.1); }
-        .btn-primary:disabled { opacity:.35; cursor:not-allowed; transform:none; box-shadow:none; }
-        .btn-secondary { flex:1; padding:14px; border-radius:9999px; background:transparent; color:#6b7280; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.12em; border:1px solid #2a2a2a; cursor:pointer; font-family:'Inter',sans-serif; transition: border-color .2s, color .2s; }
-        .btn-secondary:hover { border-color:#6b7280; color:#e5e7eb; }
-        .rdp { --rdp-accent-color:#e5e7eb !important; --rdp-background-color:rgba(255,255,255,0.06) !important; }
-        .upload-area { border:1px dashed #2a2a2a; border-radius:12px; padding:32px; text-align:center; cursor:pointer; transition: border-color .2s, background .2s; }
-        .upload-area:hover { border-color:#4b5563; background:#141414; }
-        .toggle-btn { padding:5px 16px; border-radius:9999px; font-size:11px; font-weight:700; font-family:'Inter',sans-serif; cursor:pointer; transition: all .2s; border:1px solid #2a2a2a; background:transparent; color:#4b5563; }
-        .toggle-btn.sim { border-color:#ef444450; background:rgba(239,68,68,0.1); color:#ef4444; }
-        .toggle-btn.nao { border-color:#22c55e50; background:rgba(34,197,94,0.08); color:#22c55e; }
-      `}</style>
+    <div className="bg-[#0A0A0A] min-h-screen text-foreground relative overflow-hidden">
+      <Toaster theme="dark" position="top-center" />
+      {/* Background glow effects */}
+      <div className="absolute -top-40 -right-40 w-96 h-96 rounded-full bg-primary/5 blur-3xl pointer-events-none" />
+      <div className="absolute top-1/3 -left-40 w-80 h-80 rounded-full bg-indigo-500/5 blur-3xl pointer-events-none" />
 
       {/* NAV */}
-      <nav
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          padding: "20px 24px",
-          borderBottom: "1px solid #141414",
-        }}
-      >
+      <nav className="flex items-center justify-between px-6 py-5 border-b border-border/30 relative bg-background/25 backdrop-blur-md">
         <Link
           href={`/${slug}`}
-          style={{
-            color: "#6b7280",
-            fontSize: "12px",
-            textTransform: "uppercase",
-            letterSpacing: ".1em",
-            textDecoration: "none",
-            fontFamily: "'Inter',sans-serif",
-            transition: "color .2s",
-          }}
-          onMouseEnter={(e) => (e.currentTarget.style.color = "#e5e7eb")}
-          onMouseLeave={(e) => (e.currentTarget.style.color = "#6b7280")}
+          className="text-xs font-bold text-muted-foreground hover:text-foreground transition-colors uppercase tracking-widest flex items-center gap-1.5"
         >
-          ← {profissional?.nome}
+          <ChevronLeft className="w-4 h-4" /> {profissional?.nome}
         </Link>
-        <span
-          className="font-display"
-          style={{
-            fontSize: "13px",
-            fontWeight: 700,
-            textTransform: "uppercase",
-            letterSpacing: "-.01em",
-            color: "#e5e7eb",
-          }}
-        >
-          <a href="/">
-            TATTOO
-            <span className="text-[#818cf8]">AGENDA</span>
-          </a>
+        <span className="font-display text-xs font-black uppercase tracking-tight text-foreground select-none">
+          TATTOO<span className="text-primary">AGENDA</span>
         </span>
       </nav>
 
-      <div
-        style={{
-          maxWidth: "560px",
-          margin: "0 auto",
-          padding: "40px 24px 80px",
-        }}
-      >
-        {/* PROGRESS */}
-        <div className="fade-in" style={{ marginBottom: "40px" }}>
-          <div style={{ display: "flex", alignItems: "center" }}>
+      <div className="max-w-xl mx-auto px-6 py-10 pb-24 relative space-y-8">
+        {/* PROGRESS STEPS */}
+        <div className="bg-card border border-border/50 rounded-2xl p-4 md:p-5 shadow-sm">
+          <div className="flex items-center justify-between">
             {STEPS.map((label, i) => (
               <div
                 key={i}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  flex: i < STEPS.length - 1 ? "1" : "none",
-                }}
+                className={`flex items-center ${
+                  i < STEPS.length - 1 ? "flex-1" : "flex-none"
+                }`}
               >
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "8px",
-                    flexShrink: 0,
-                  }}
-                >
+                <div className="flex items-center gap-2 shrink-0">
                   <div
-                    className={`step-circle ${step > i + 1 ? "step-done" : step === i + 1 ? "step-active" : "step-idle"}`}
+                    className={`w-7 h-7 rounded-full flex items-center justify-center font-display text-[10px] font-bold transition-all ${
+                      step > i + 1
+                        ? "bg-foreground text-background"
+                        : step === i + 1
+                          ? "bg-primary/10 border border-primary text-foreground shadow-[0_0_8px_rgba(129,140,248,0.15)]"
+                          : "bg-muted/40 border border-border text-muted-foreground/50"
+                    }`}
                   >
                     {step > i + 1 ? "✓" : i + 1}
                   </div>
                   <span
-                    style={{
-                      fontSize: "11px",
-                      color:
-                        step === i + 1
-                          ? "#e5e7eb"
-                          : step > i + 1
-                            ? "#6b7280"
-                            : "#374151",
-                    }}
+                    className={`text-[10px] font-bold uppercase tracking-wider ${
+                      step === i + 1
+                        ? "text-foreground"
+                        : step > i + 1
+                          ? "text-muted-foreground/60"
+                          : "text-muted-foreground/35"
+                    }`}
                   >
                     {label}
                   </span>
                 </div>
                 {i < STEPS.length - 1 && (
                   <div
-                    style={{
-                      flex: 1,
-                      height: "1px",
-                      margin: "0 12px",
-                      background: step > i + 1 ? "#6b7280" : "#222",
-                      transition: "background .4s",
-                    }}
+                    className={`flex-1 h-[1px] mx-3 transition-colors duration-300 ${
+                      step > i + 1 ? "bg-muted-foreground/60" : "bg-border/30"
+                    }`}
                   />
                 )}
               </div>
@@ -575,183 +494,86 @@ export default function AgendarPage() {
           </div>
         </div>
 
-        {/* STEP 1 — SERVIÇO */}
+        {/* STEP 1 ─ SERVIÇO */}
         {step === 1 && (
-          <div>
-            <h2
-              className="font-display fade-in"
-              style={{
-                fontSize: "20px",
-                fontWeight: 900,
-                textTransform: "uppercase",
-                marginBottom: "6px",
-                color: "#e5e7eb",
-              }}
-            >
-              Escolha o serviço
-            </h2>
-            <p
-              className="fade-in-2"
-              style={{
-                color: "#6b7280",
-                fontSize: "13px",
-                marginBottom: "24px",
-              }}
-            >
-              Selecione o que você deseja realizar
-            </p>
-            <div
-              className="fade-in-3"
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: "12px",
-                marginBottom: "28px",
-              }}
-            >
+          <div className="space-y-6">
+            <div>
+              <h2 className="font-display text-lg font-black uppercase tracking-wider text-foreground">
+                Escolha o serviço
+              </h2>
+              <p className="text-xs text-muted-foreground mt-1">
+                Selecione o procedimento de tatuagem que deseja realizar
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-3">
               {servicos.map((s) => (
                 <button
                   key={s.id}
                   onClick={() => setServicoSelecionado(s)}
-                  className={`service-opt ${servicoSelecionado?.id === s.id ? "selected" : ""}`}
+                  className={`w-full text-left p-5 rounded-2xl border transition-all duration-200 flex items-start justify-between gap-4 ${
+                    servicoSelecionado?.id === s.id
+                      ? "border-primary bg-primary/[0.02] shadow-sm"
+                      : "border-border bg-card hover:border-border/80 hover:bg-muted/5"
+                  }`}
                 >
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "flex-start",
-                      gap: "12px",
-                    }}
-                  >
-                    <div style={{ flex: 1 }}>
-                      <p
-                        style={{
-                          fontFamily: "'Unbounded',serif",
-                          fontSize: "13px",
-                          fontWeight: 700,
-                          marginBottom: "6px",
-                          color: "#e5e7eb",
-                        }}
-                      >
-                        {s.nome}
+                  <div className="space-y-2 flex-1">
+                    <p className="font-display text-xs font-bold text-foreground">
+                      {s.nome}
+                    </p>
+                    {s.descricao && (
+                      <p className="text-xs text-muted-foreground font-light leading-relaxed">
+                        {s.descricao}
                       </p>
-                      {s.descricao && (
-                        <p
-                          style={{
-                            color: "#6b7280",
-                            fontSize: "13px",
-                            lineHeight: "1.5",
-                            marginBottom: "6px",
-                            fontWeight: 300,
-                          }}
-                        >
-                          {s.descricao}
-                        </p>
-                      )}
-                      <p style={{ color: "#4b5563", fontSize: "12px" }}>
-                        {formatarDuracao(s.duracao_minutos)}
-                      </p>
-                    </div>
+                    )}
+                    <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-muted-foreground">
+                      <Clock className="w-3.5 h-3.5 text-muted-foreground/60" /> {formatarDuracao(s.duracao_minutos)}
+                    </span>
+                  </div>
+                  
+                  <div className="flex items-center gap-3 shrink-0">
+                    <span className="font-display text-xs font-bold text-foreground">
+                      {formatarPreco(s)}
+                    </span>
                     <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "12px",
-                        flexShrink: 0,
-                      }}
+                      className={`w-4 h-4 rounded-full border flex items-center justify-center transition-all ${
+                        servicoSelecionado?.id === s.id
+                          ? "border-primary bg-primary"
+                          : "border-border bg-transparent"
+                      }`}
                     >
-                      <span
-                        style={{
-                          fontFamily: "'Unbounded',serif",
-                          fontSize: "13px",
-                          fontWeight: 700,
-                          color: "#9ca3af",
-                        }}
-                      >
-                        R$ {Number(s.preco).toFixed(0)}
-                      </span>
-                      <div
-                        style={{
-                          width: "18px",
-                          height: "18px",
-                          borderRadius: "9999px",
-                          border:
-                            servicoSelecionado?.id === s.id
-                              ? "2px solid #e5e7eb"
-                              : "2px solid #374151",
-                          background:
-                            servicoSelecionado?.id === s.id
-                              ? "#e5e7eb"
-                              : "transparent",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          transition: "all .2s",
-                          flexShrink: 0,
-                        }}
-                      >
-                        {servicoSelecionado?.id === s.id && (
-                          <div
-                            style={{
-                              width: "6px",
-                              height: "6px",
-                              borderRadius: "9999px",
-                              background: "#0A0A0A",
-                            }}
-                          />
-                        )}
-                      </div>
+                      {servicoSelecionado?.id === s.id && (
+                        <div className="w-1.5 h-1.5 rounded-full bg-primary-foreground" />
+                      )}
                     </div>
                   </div>
                 </button>
               ))}
             </div>
+
             <button
               onClick={() => servicoSelecionado && setStep(2)}
               disabled={!servicoSelecionado}
-              className="btn-primary"
-              style={{ width: "100%" }}
+              className="w-full inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground font-bold py-3.5 px-6 rounded-2xl transition-all shadow-md disabled:opacity-35 disabled:cursor-not-allowed uppercase tracking-wider text-xs select-none border border-primary hover:opacity-95"
             >
-              Continuar
+              Continuar <ArrowRight className="w-4 h-4" />
             </button>
           </div>
         )}
 
-        {/* STEP 2 — DATA E HORA */}
+        {/* STEP 2 ─ DATA E HORA */}
         {step === 2 && (
-          <div>
-            <h2
-              className="font-display fade-in"
-              style={{
-                fontSize: "20px",
-                fontWeight: 900,
-                textTransform: "uppercase",
-                marginBottom: "6px",
-                color: "#e5e7eb",
-              }}
-            >
-              Data e horário
-            </h2>
-            <p
-              className="fade-in-2"
-              style={{
-                color: "#6b7280",
-                fontSize: "13px",
-                marginBottom: "24px",
-              }}
-            >
-              Escolha quando deseja ser atendido
-            </p>
-            <div
-              className="fade-in-3"
-              style={{
-                background: "#111",
-                borderRadius: "16px",
-                border: "1px solid #1e1e1e",
-                padding: "16px",
-                marginBottom: "20px",
-              }}
-            >
+          <div className="space-y-6">
+            <div>
+              <h2 className="font-display text-lg font-black uppercase tracking-wider text-foreground">
+                Data e horário
+              </h2>
+              <p className="text-xs text-muted-foreground mt-1">
+                Escolha o dia e o horário ideal para a sua sessão
+              </p>
+            </div>
+
+            <div className="bg-card border border-border/70 rounded-2xl p-4 md:p-5 flex justify-center shadow-sm">
               <Calendar
                 mode="single"
                 selected={dataSelecionada}
@@ -764,46 +586,24 @@ export default function AgendarPage() {
                   date < new Date(new Date().setHours(0, 0, 0, 0))
                 }
                 locale={ptBR}
-                className="bg-transparent [--cell-size:2rem] text-sm w-full"
+                className="bg-transparent w-full text-xs"
               />
             </div>
+
             {dataSelecionada && slotsDisponiveis.length === 0 && (
-              <div
-                style={{
-                  background: "#111",
-                  borderRadius: "14px",
-                  border: "1px solid #1e1e1e",
-                  padding: "24px",
-                  textAlign: "center",
-                  marginBottom: "20px",
-                }}
-              >
-                <p style={{ color: "#4b5563", fontSize: "13px" }}>
-                  Nenhum horário disponível nesta data
+              <div className="bg-card border border-border/60 rounded-2xl p-6 text-center shadow-inner">
+                <p className="text-xs text-muted-foreground/70">
+                  Nenhum horário disponível para esta data
                 </p>
               </div>
             )}
+
             {slotsDisponiveis.length > 0 && (
-              <div style={{ marginBottom: "28px" }}>
-                <p
-                  style={{
-                    fontSize: "11px",
-                    fontWeight: 600,
-                    letterSpacing: ".15em",
-                    textTransform: "uppercase",
-                    color: "#4b5563",
-                    marginBottom: "12px",
-                  }}
-                >
+              <div className="space-y-3">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">
                   Horários disponíveis
                 </p>
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(4,1fr)",
-                    gap: "8px",
-                  }}
-                >
+                <div className="grid grid-cols-4 gap-2">
                   {slotsDisponiveis.map((slot) => (
                     <button
                       key={slot.hora}
@@ -811,7 +611,13 @@ export default function AgendarPage() {
                         slot.disponivel && setHorarioSelecionado(slot.hora)
                       }
                       disabled={!slot.disponivel}
-                      className={`slot-btn ${!slot.disponivel ? "opacity-40 line-through cursor-not-allowed" : horarioSelecionado === slot.hora ? "selected" : ""}`}
+                      className={`py-2.5 rounded-xl border text-xs font-bold transition-all font-sans select-none ${
+                        !slot.disponivel
+                          ? "opacity-30 line-through cursor-not-allowed border-border bg-transparent text-muted-foreground/40"
+                          : horarioSelecionado === slot.hora
+                            ? "border-primary bg-primary/10 text-primary"
+                            : "border-border bg-card text-muted-foreground hover:border-border/80 hover:text-foreground"
+                      }`}
                     >
                       {slot.hora}
                     </button>
@@ -819,14 +625,18 @@ export default function AgendarPage() {
                 </div>
               </div>
             )}
-            <div style={{ display: "flex", gap: "12px" }}>
-              <button onClick={() => setStep(1)} className="btn-secondary">
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setStep(1)}
+                className="flex-1 py-3 px-6 rounded-2xl border border-border hover:border-border/85 bg-transparent hover:bg-muted/10 text-muted-foreground hover:text-foreground font-bold transition-all text-xs uppercase tracking-wider shadow-sm select-none"
+              >
                 Voltar
               </button>
               <button
                 onClick={() => horarioSelecionado && setStep(3)}
                 disabled={!horarioSelecionado}
-                className="btn-primary"
+                className="flex-1 bg-primary text-primary-foreground font-bold py-3 px-6 rounded-2xl transition-all shadow-md disabled:opacity-35 disabled:cursor-not-allowed uppercase tracking-wider text-xs select-none border border-primary hover:opacity-95"
               >
                 Continuar
               </button>
@@ -834,114 +644,55 @@ export default function AgendarPage() {
           </div>
         )}
 
-        {/* STEP 3 — DADOS */}
+        {/* STEP 3 ─ SEUS DADOS */}
         {step === 3 && (
-          <div>
-            <h2
-              className="font-display fade-in"
-              style={{
-                fontSize: "20px",
-                fontWeight: 900,
-                textTransform: "uppercase",
-                marginBottom: "6px",
-                color: "#e5e7eb",
-              }}
-            >
-              Seus dados
-            </h2>
-            <p
-              className="fade-in-2"
-              style={{
-                color: "#6b7280",
-                fontSize: "13px",
-                marginBottom: "24px",
-              }}
-            >
-              Precisamos de algumas informações
-            </p>
+          <div className="space-y-6">
+            <div>
+              <h2 className="font-display text-lg font-black uppercase tracking-wider text-foreground">
+                Seus dados
+              </h2>
+              <p className="text-xs text-muted-foreground mt-1">
+                Por favor, preencha as informações técnicas e clínicas para a sessão
+              </p>
+            </div>
 
-            {/* RESUMO */}
-            <div
-              className="fade-in-3"
-              style={{
-                background: "#111",
-                borderRadius: "14px",
-                border: "1px solid #1e1e1e",
-                padding: "20px",
-                marginBottom: "24px",
-              }}
-            >
+            {/* RESUMO CARD */}
+            <div className="bg-card border border-border/80 rounded-2xl p-5 shadow-sm space-y-3.5">
               {[
                 { label: "Serviço", value: servicoSelecionado?.nome },
                 {
-                  label: "Data",
+                  label: "Data da Sessão",
                   value: dataSelecionada?.toLocaleDateString("pt-BR"),
                 },
                 { label: "Horário", value: horarioSelecionado },
-              ].map((row) => (
-                <div
-                  key={row.label}
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    marginBottom: "10px",
-                  }}
-                >
-                  <span style={{ color: "#4b5563", fontSize: "12px" }}>
-                    {row.label}
-                  </span>
-                  <span
-                    style={{
-                      color: "#d1d5db",
-                      fontSize: "12px",
-                      fontWeight: 500,
-                    }}
-                  >
-                    {row.value}
-                  </span>
-                </div>
-              ))}
-              <div
-                style={{
-                  borderTop: "1px solid #1e1e1e",
-                  paddingTop: "12px",
-                  marginTop: "4px",
-                  display: "flex",
-                  justifyContent: "space-between",
-                }}
-              >
-                <span style={{ color: "#4b5563", fontSize: "12px" }}>
-                  Valor
-                </span>
-                <span
-                  style={{
-                    color: "#e5e7eb",
-                    fontSize: "15px",
-                    fontWeight: 700,
-                    fontFamily: "'Unbounded',serif",
-                  }}
-                >
-                  R$ {Number(servicoSelecionado?.preco).toFixed(2)}
+                localCorpo ? { label: "Local do Corpo", value: localCorpo } : null,
+                tamanhoTattoo ? { label: "Tamanho", value: `${tamanhoTattoo} cm` } : null,
+              ]
+                .filter((row): row is { label: string; value: string } => !!row && !!row.value)
+                .map((row) => (
+                  <div key={row.label} className="flex justify-between items-center text-xs">
+                    <span className="text-muted-foreground/80">{row.label}</span>
+                    <span className="text-foreground font-semibold">{row.value}</span>
+                  </div>
+                ))}
+              <div className="border-t border-border/40 pt-3 flex justify-between items-center">
+                <span className="text-muted-foreground text-xs font-semibold">Valor Estimado</span>
+                <span className="text-sm font-bold font-display text-foreground">
+                  {servicoSelecionado ? formatarPreco(servicoSelecionado) : ""}
                 </span>
               </div>
             </div>
 
-            {/* DADOS PESSOAIS */}
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: "16px",
-                marginBottom: "28px",
-              }}
-            >
+            {/* FORM FIELDS */}
+            <div className="space-y-4">
               {[
                 {
                   label: "Nome completo",
                   value: nomeCliente,
                   set: setNomeCliente,
                   type: "text",
-                  ph: "Seu nome",
+                  ph: "Seu nome artístico ou completo",
+                  icon: <User className="w-4 h-4 text-muted-foreground/60 shrink-0" />,
                 },
                 {
                   label: "WhatsApp",
@@ -949,6 +700,7 @@ export default function AgendarPage() {
                   set: setTelefone,
                   type: "tel",
                   ph: "(11) 99999-9999",
+                  icon: <Phone className="w-4 h-4 text-muted-foreground/60 shrink-0" />,
                 },
                 {
                   label: "E-mail (opcional)",
@@ -956,149 +708,93 @@ export default function AgendarPage() {
                   set: setEmail,
                   type: "email",
                   ph: "seu@email.com",
+                  icon: <Mail className="w-4 h-4 text-muted-foreground/60 shrink-0" />,
                 },
               ].map((f) => (
-                <div key={f.label}>
-                  <label
-                    style={{
-                      display: "block",
-                      fontSize: "11px",
-                      fontWeight: 600,
-                      letterSpacing: ".12em",
-                      textTransform: "uppercase",
-                      color: "#6b7280",
-                      marginBottom: "8px",
-                    }}
-                  >
+                <div key={f.label} className="space-y-2">
+                  <label className="block text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                     {f.label}
                   </label>
-                  <input
-                    type={f.type}
-                    value={f.value}
-                    onChange={(e) => f.set(e.target.value)}
-                    placeholder={f.ph}
-                    className="field-input"
-                  />
+                  <div className="flex items-center gap-2 bg-background border border-border/80 rounded-2xl px-4 py-3 shadow-inner focus-within:border-primary/50 transition-colors">
+                    {f.icon}
+                    <input
+                      type={f.type}
+                      value={f.value}
+                      onChange={(e) => f.set(e.target.value)}
+                      placeholder={f.ph}
+                      className="bg-transparent border-0 text-foreground text-sm focus:outline-none w-full"
+                    />
+                  </div>
                 </div>
               ))}
 
               {/* LOCAL DO CORPO */}
-              <div>
-                <label
-                  style={{
-                    display: "block",
-                    fontSize: "11px",
-                    fontWeight: 600,
-                    letterSpacing: ".12em",
-                    textTransform: "uppercase",
-                    color: "#6b7280",
-                    marginBottom: "8px",
-                  }}
-                >
-                  Local do corpo
+              <div className="space-y-2">
+                <label className="block text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                  Local do corpo *
                 </label>
-                <input
-                  type="text"
-                  value={localCorpo}
-                  onChange={(e) => setLocalCorpo(e.target.value)}
-                  placeholder="Ex: antebraço direito, costela..."
-                  className="field-input"
-                />
+                <div className="flex items-center gap-2 bg-background border border-border/80 rounded-2xl px-4 py-3 shadow-inner focus-within:border-primary/50 transition-colors">
+                  <span className="text-sm shrink-0">📍</span>
+                  <input
+                    type="text"
+                    value={localCorpo}
+                    onChange={(e) => setLocalCorpo(e.target.value)}
+                    placeholder="Ex: antebraço direito, costela..."
+                    className="bg-transparent border-0 text-foreground text-sm focus:outline-none w-full"
+                  />
+                </div>
+              </div>
+
+              {/* TAMANHO ESTIMADO */}
+              <div className="space-y-2">
+                <label className="block text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                  Tamanho aproximado (em cm) *
+                </label>
+                <div className="flex items-center gap-2 bg-background border border-border/80 rounded-2xl px-4 py-3 shadow-inner focus-within:border-primary/50 transition-colors">
+                  <span className="text-sm shrink-0">📐</span>
+                  <input
+                    type="text"
+                    value={tamanhoTattoo}
+                    onChange={(e) => setTamanhoTattoo(e.target.value)}
+                    placeholder="Ex: 15, 10, 5..."
+                    className="bg-transparent border-0 text-foreground text-sm focus:outline-none w-full font-sans"
+                  />
+                </div>
               </div>
 
               {/* REFERÊNCIA */}
-              <div>
-                <label
-                  style={{
-                    display: "block",
-                    fontSize: "11px",
-                    fontWeight: 600,
-                    letterSpacing: ".12em",
-                    textTransform: "uppercase",
-                    color: "#6b7280",
-                    marginBottom: "8px",
-                  }}
-                >
-                  Imagem de referência{" "}
-                  <span
-                    style={{
-                      opacity: 0.5,
-                      textTransform: "none",
-                      letterSpacing: 0,
-                      fontWeight: 400,
-                    }}
-                  >
-                    (opcional)
-                  </span>
+              <div className="space-y-2">
+                <label className="block text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                  Imagem de referência <span className="opacity-50 text-[9px] normal-case tracking-normal">(opcional)</span>
                 </label>
-                <label style={{ display: "block", cursor: "pointer" }}>
+                <label className="block cursor-pointer select-none">
                   <input
                     type="file"
                     accept="image/*"
                     onChange={handleReferenciaChange}
-                    style={{ display: "none" }}
+                    className="hidden"
                   />
                   {referenciaPreview ? (
-                    <div
-                      style={{
-                        position: "relative",
-                        borderRadius: "12px",
-                        overflow: "hidden",
-                        border: "1px solid #2a2a2a",
-                      }}
-                    >
+                    <div className="relative rounded-2xl overflow-hidden border border-border shadow-sm">
                       <img
                         src={referenciaPreview}
                         alt="Referência"
-                        style={{
-                          width: "100%",
-                          maxHeight: "220px",
-                          objectFit: "cover",
-                          display: "block",
-                        }}
+                        className="w-full max-h-60 object-cover block"
                       />
-                      <div
-                        style={{
-                          position: "absolute",
-                          inset: 0,
-                          background: "rgba(0,0,0,0.55)",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          opacity: 0,
-                          transition: "opacity .2s",
-                        }}
-                        onMouseEnter={(e) =>
-                          (e.currentTarget.style.opacity = "1")
-                        }
-                        onMouseLeave={(e) =>
-                          (e.currentTarget.style.opacity = "0")
-                        }
-                      >
-                        <span
-                          style={{
-                            color: "#e5e7eb",
-                            fontSize: "12px",
-                            fontWeight: 600,
-                          }}
-                        >
-                          Trocar imagem
+                      <div className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity duration-200">
+                        <span className="text-white text-xs font-bold uppercase tracking-wider flex items-center gap-1.5">
+                          <Upload className="w-4 h-4" /> Trocar imagem
                         </span>
                       </div>
                     </div>
                   ) : (
-                    <div className="upload-area">
-                      <p
-                        style={{
-                          color: "#6b7280",
-                          fontSize: "13px",
-                          marginBottom: "4px",
-                        }}
-                      >
+                    <div className="border border-dashed border-border hover:border-primary/45 rounded-2xl py-8 px-6 text-center transition-all bg-card/10 hover:bg-muted/5">
+                      <Upload className="w-5 h-5 text-muted-foreground/60 mx-auto mb-2" />
+                      <p className="text-xs font-semibold text-muted-foreground/80 mb-1">
                         Clique para enviar uma referência
                       </p>
-                      <p style={{ color: "#374151", fontSize: "11px" }}>
-                        JPG, PNG ou WEBP
+                      <p className="text-[10px] text-muted-foreground/45">
+                        Formatos aceitos: JPG, PNG ou WEBP (Max 5MB)
                       </p>
                     </div>
                   )}
@@ -1106,100 +802,60 @@ export default function AgendarPage() {
               </div>
             </div>
 
-            {/* ── FICHA DE ANAMNESE ─────────────────────────────── */}
-            <div
-              style={{
-                borderTop: "1px solid #1f1f1f",
-                paddingTop: "28px",
-                marginBottom: "28px",
-              }}
-            >
-              <div style={{ marginBottom: "20px" }}>
-                <label
-                  style={{
-                    display: "block",
-                    fontSize: "11px",
-                    fontWeight: 600,
-                    letterSpacing: ".12em",
-                    textTransform: "uppercase",
-                    color: "#6b7280",
-                    marginBottom: "6px",
-                  }}
-                >
-                  Ficha de Anamnese
+            {/* FICHA DE ANAMNESE */}
+            <div className="border-t border-border/20 pt-6 space-y-6">
+              <div className="space-y-1">
+                <label className="block text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
+                  <FileText className="w-4 h-4 text-primary" /> Ficha de Anamnese *
                 </label>
-                <p
-                  style={{
-                    fontSize: "12px",
-                    color: "#374151",
-                    fontWeight: 300,
-                    lineHeight: 1.6,
-                  }}
-                >
-                  Informações necessárias para garantir sua segurança durante a
-                  sessão. Responda todas as perguntas abaixo.
+                <p className="text-[11px] text-muted-foreground/75 leading-relaxed font-light">
+                  Essenciais para sua segurança. Responda todas as perguntas abaixo antes de prosseguir.
                 </p>
               </div>
 
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "10px",
-                  marginBottom: "16px",
-                }}
-              >
+              <div className="space-y-2.5">
                 {PERGUNTAS.map(({ key, label, descKey, descPlaceholder }) => (
                   <div
                     key={key}
-                    style={{
-                      background: "#111",
-                      border: `1px solid ${anamnese[key] === null ? "#1f1f1f" : anamnese[key] === true ? "#ef444425" : "#22c55e20"}`,
-                      borderRadius: "12px",
-                      padding: "14px 16px",
-                      transition: "border-color .2s",
-                    }}
+                    className={`border rounded-2xl p-4 transition-all duration-200 bg-card ${
+                      anamnese[key] === null
+                        ? "border-border"
+                        : anamnese[key] === true
+                          ? "border-red-500/20 bg-red-500/[0.01]"
+                          : "border-green-500/20 bg-green-500/[0.01]"
+                    }`}
                   >
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        gap: "12px",
-                      }}
-                    >
-                      <span
-                        style={{
-                          fontSize: "13px",
-                          color: "#d1d5db",
-                          fontWeight: 300,
-                          lineHeight: 1.4,
-                          flex: 1,
-                        }}
-                      >
+                    <div className="flex items-start justify-between gap-4">
+                      <span className="text-xs text-foreground font-light leading-relaxed flex-1">
                         {label}
                       </span>
-                      <div
-                        style={{ display: "flex", gap: "6px", flexShrink: 0 }}
-                      >
+                      <div className="flex gap-1.5 shrink-0 select-none">
                         <button
                           type="button"
                           onClick={() => updateAnamnese(key, false)}
-                          className={`toggle-btn ${anamnese[key] === false ? "nao" : ""}`}
+                          className={`px-3.5 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider border transition-all ${
+                            anamnese[key] === false
+                              ? "border-green-500/20 bg-green-500/10 text-green-400 font-bold"
+                              : "border-border bg-transparent text-muted-foreground/50 hover:text-foreground hover:border-border/80"
+                          }`}
                         >
                           Não
                         </button>
                         <button
                           type="button"
                           onClick={() => updateAnamnese(key, true)}
-                          className={`toggle-btn ${anamnese[key] === true ? "sim" : ""}`}
+                          className={`px-3.5 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider border transition-all ${
+                            anamnese[key] === true
+                              ? "border-red-500/20 bg-red-500/10 text-red-400 font-bold"
+                              : "border-border bg-transparent text-muted-foreground/50 hover:text-foreground hover:border-border/80"
+                          }`}
                         >
                           Sim
                         </button>
                       </div>
                     </div>
                     {descKey && anamnese[key] === true && (
-                      <div style={{ marginTop: "10px" }}>
+                      <div className="mt-3">
                         <input
                           type="text"
                           value={anamnese[descKey] as string}
@@ -1207,8 +863,7 @@ export default function AgendarPage() {
                             updateAnamnese(descKey, e.target.value)
                           }
                           placeholder={descPlaceholder}
-                          className="field-input"
-                          style={{ fontSize: "13px", background: "#141414" }}
+                          className="w-full bg-background border border-border/80 text-foreground px-3.5 py-2.5 text-xs rounded-xl focus:outline-none focus:border-primary/50 transition-all shadow-inner"
                         />
                       </div>
                     )}
@@ -1220,46 +875,25 @@ export default function AgendarPage() {
               <button
                 type="button"
                 onClick={() => updateAnamnese("aceite", !anamnese.aceite)}
-                style={{
-                  width: "100%",
-                  textAlign: "left",
-                  padding: "14px 16px",
-                  borderRadius: "12px",
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "flex-start",
-                  gap: "12px",
-                  border: anamnese.aceite
-                    ? "1px solid rgba(34,197,94,0.25)"
-                    : "1px solid #2a2a2a",
-                  background: anamnese.aceite ? "rgba(34,197,94,0.05)" : "#111",
-                  transition: "all .2s",
-                }}
+                className={`w-full text-left p-4 rounded-2xl border transition-all flex items-start gap-3 select-none ${
+                  anamnese.aceite
+                    ? "border-green-500/20 bg-green-500/[0.01]"
+                    : "border-border bg-card"
+                }`}
               >
-                {/* checkbox visual */}
                 <div
-                  style={{
-                    width: "18px",
-                    height: "18px",
-                    borderRadius: "5px",
-                    flexShrink: 0,
-                    marginTop: "1px",
-                    border: anamnese.aceite
-                      ? "2px solid #22c55e"
-                      : "2px solid #374151",
-                    background: anamnese.aceite ? "#22c55e" : "transparent",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    transition: "all .2s",
-                  }}
+                  className={`w-4.5 h-4.5 rounded-md border flex items-center justify-center shrink-0 mt-0.5 transition-all ${
+                    anamnese.aceite
+                      ? "border-green-500 bg-green-500 text-background"
+                      : "border-border bg-transparent"
+                  }`}
                 >
                   {anamnese.aceite && (
-                    <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                    <svg width="10" height="10" viewBox="0 0 10 10" fill="none" className="stroke-background shrink-0">
                       <path
                         d="M1.5 5L4 7.5L8.5 2.5"
-                        stroke="#0A0A0A"
-                        strokeWidth="1.5"
+                        stroke="currentColor"
+                        strokeWidth="2"
                         strokeLinecap="round"
                         strokeLinejoin="round"
                       />
@@ -1267,43 +901,33 @@ export default function AgendarPage() {
                   )}
                 </div>
                 <span
-                  style={{
-                    fontSize: "12px",
-                    color: anamnese.aceite ? "#d1d5db" : "#6b7280",
-                    lineHeight: 1.6,
-                    fontWeight: 300,
-                    transition: "color .2s",
-                  }}
+                  className={`text-[11px] leading-relaxed font-light transition-colors duration-200 ${
+                    anamnese.aceite ? "text-foreground" : "text-muted-foreground/80"
+                  }`}
                 >
-                  Declaro que as informações acima são verdadeiras e autorizo a
-                  realização do procedimento de tatuagem com pleno conhecimento
-                  dos riscos envolvidos.
+                  Declaro que as informações acima são verdadeiras e autorizo a realização do procedimento de tatuagem com pleno conhecimento dos riscos envolvidos.
                 </span>
               </button>
 
-              {/* aviso se ainda falta responder */}
               {!anamneseCompleta && (
-                <p
-                  style={{
-                    fontSize: "11px",
-                    color: "#4b5563",
-                    marginTop: "10px",
-                    textAlign: "center",
-                  }}
-                >
-                  Responda todas as perguntas para continuar
+                <p className="text-[10px] text-muted-foreground/50 text-center uppercase tracking-wider">
+                  Responda todas as perguntas da anamnese para continuar
                 </p>
               )}
             </div>
 
-            <div style={{ display: "flex", gap: "12px" }}>
-              <button onClick={() => setStep(2)} className="btn-secondary">
+            {/* BUTTONS */}
+            <div className="flex gap-3">
+              <button
+                onClick={() => setStep(2)}
+                className="flex-1 py-3 px-6 rounded-2xl border border-border hover:border-border/85 bg-transparent hover:bg-muted/10 text-muted-foreground hover:text-foreground font-bold transition-all text-xs uppercase tracking-wider shadow-sm select-none"
+              >
                 Voltar
               </button>
               <button
                 onClick={confirmarAgendamento}
                 disabled={!podeConfirmar}
-                className="btn-primary"
+                className="flex-1 bg-primary text-primary-foreground font-bold py-3 px-6 rounded-2xl transition-all shadow-md disabled:opacity-35 disabled:cursor-not-allowed uppercase tracking-wider text-xs select-none border border-primary hover:opacity-95"
               >
                 {salvando || uploadando ? "Enviando..." : "Confirmar"}
               </button>

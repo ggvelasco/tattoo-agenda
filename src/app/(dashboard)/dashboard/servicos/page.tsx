@@ -100,34 +100,36 @@ function ServicoCard({
     <div
       ref={setNodeRef}
       style={style}
-      className={`bg-card border rounded-xl flex items-center gap-3 pr-4 hover:border-border/80 transition-colors group ${
-        isDragging ? "border-primary shadow-lg" : "border-border"
+      className={`bg-card border rounded-2xl flex items-center gap-3 pr-4 hover:border-primary/30 hover:bg-muted/5 transition-all duration-200 group ${
+        isDragging ? "border-primary shadow-xl scale-[1.01]" : "border-border shadow-sm"
       }`}
     >
       {/* HANDLE DE DRAG */}
       <div
         {...attributes}
         {...listeners}
-        className="pl-4 py-5 cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground transition-colors touch-none"
+        className="pl-4 py-6 cursor-grab active:cursor-grabbing text-muted-foreground/40 hover:text-primary transition-colors touch-none"
         title="Arrastar para reordenar"
       >
         <GripVertical className="w-4 h-4" />
       </div>
 
       {/* CONTEÚDO */}
-      <div className="flex-1 min-w-0 py-4">
-        <p className="text-sm font-semibold text-foreground mb-1">{s.nome}</p>
+      <div className="flex-1 min-w-0 py-5">
+        <div className="flex items-center justify-between gap-2 mb-1">
+          <p className="text-sm font-bold text-foreground font-display">{s.nome}</p>
+        </div>
         {s.descricao && (
-          <p className="text-xs text-muted-foreground mb-2 line-clamp-1">
+          <p className="text-xs text-muted-foreground mb-3 line-clamp-2 leading-relaxed max-w-xl">
             {s.descricao}
           </p>
         )}
-        <div className="flex items-center gap-3 flex-wrap">
-          <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="inline-flex items-center gap-1 text-[11px] font-medium bg-muted text-muted-foreground px-2.5 py-0.5 rounded-md border border-border/30">
             <Clock className="w-3 h-3" />
             {formatarDuracao(s.duracao_minutos)}
           </span>
-          <span className="inline-flex items-center gap-1 text-xs font-medium text-foreground">
+          <span className="inline-flex items-center gap-1 text-[11px] font-bold bg-primary/10 text-primary border border-primary/20 px-2.5 py-0.5 rounded-full font-sans">
             <Tag className="w-3 h-3" />
             {formatarPreco(s)}
           </span>
@@ -135,20 +137,20 @@ function ServicoCard({
       </div>
 
       {/* AÇÕES */}
-      <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+      <div className="flex items-center gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
         <button
           onClick={() => onEditar(s)}
-          className="w-8 h-8 flex items-center justify-center rounded-lg border border-border text-muted-foreground hover:text-foreground hover:border-border/80 transition-colors"
+          className="w-9 h-9 flex items-center justify-center rounded-xl border border-border text-muted-foreground hover:text-foreground hover:border-border/85 bg-card hover:bg-muted/30 transition-colors shadow-sm"
           title="Editar"
         >
-          <Pencil className="w-3.5 h-3.5" />
+          <Pencil className="w-4 h-4" />
         </button>
         <button
           onClick={() => onDeletar(s.id)}
-          className="w-8 h-8 flex items-center justify-center rounded-lg border border-destructive/30 text-destructive hover:bg-destructive/10 transition-colors"
+          className="w-9 h-9 flex items-center justify-center rounded-xl border border-destructive/20 text-destructive bg-destructive/5 hover:bg-destructive/15 hover:border-destructive/30 transition-colors shadow-sm"
           title="Remover"
         >
-          <Trash2 className="w-3.5 h-3.5" />
+          <Trash2 className="w-4 h-4" />
         </button>
       </div>
     </div>
