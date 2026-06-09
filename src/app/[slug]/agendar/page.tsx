@@ -27,8 +27,10 @@ type Servico = {
   duracao_minutos: number;
   preco: number;
   tipo_preco: string;
+  requer_sinal?: boolean;
+  sinal_valor?: number;
 };
-type Profissional = { id: string; nome: string; slug: string };
+type Profissional = { id: string; nome: string; slug: string; whatsapp?: string; chave_pix?: string };
 
 type Anamnese = {
   alergia: boolean | null;
@@ -144,6 +146,14 @@ export default function AgendarPage() {
   const [uploadando, setUploadando] = useState(false);
   const [anamnese, setAnamnese] = useState<Anamnese>(ANAMNESE_INICIAL);
 
+  // Sinal states
+  const [comprovanteFile, setComprovanteFile] = useState<File | null>(null);
+  const [comprovantePreview, setComprovantePreview] = useState<string | null>(null);
+  const [pixCopiado, setPixCopiado] = useState(false);
+
+  const temSinal = servicoSelecionado?.requer_sinal && profissional?.chave_pix;
+  const stepsList = temSinal ? ["Serviço", "Data & hora", "Seus dados", "Sinal"] : ["Serviço", "Data & hora", "Seus dados"];
+
   // verifica se todas as perguntas da anamnese foram respondidas
   const anamneseCompleta = PERGUNTAS.every((p) => anamnese[p.key] !== null);
   const podeConfirmar =
@@ -164,7 +174,7 @@ export default function AgendarPage() {
     const supabase = createClient();
     const { data: perfil } = await supabase
       .from("profissionais")
-      .select("id, nome, slug, whatsapp")
+      .select("id, nome, slug, whatsapp, chave_pix")
       .eq("slug", slug)
       .single();
     if (!perfil) return;
@@ -258,6 +268,38 @@ export default function AgendarPage() {
     reader.readAsDataURL(file);
   }
 
+  function handleComprovanteChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const tiposPermitidos = ["image/jpeg", "image/png", "image/webp"];
+    if (!tiposPermitidos.includes(file.type)) {
+      toast.error("Formato não suportado", {
+        description: "Apenas imagens JPG, PNG ou WEBP são permitidas.",
+      });
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Imagem muito grande", {
+        description: "O comprovante deve ter no máximo 5MB.",
+      });
+      return;
+    }
+    setComprovanteFile(file);
+    const reader = new FileReader();
+    reader.onload = () => setComprovantePreview(reader.result as string);
+    reader.readAsDataURL(file);
+  }
+
+  function copiarPix() {
+    if (!profissional?.chave_pix) return;
+    navigator.clipboard.writeText(profissional.chave_pix);
+    setPixCopiado(true);
+    toast.success("Chave Pix copiada!", {
+      description: "Cole no aplicativo do seu banco para pagar."
+    });
+    setTimeout(() => setPixCopiado(false), 2000);
+  }
+
   function updateAnamnese(
     field: keyof Anamnese,
     value: boolean | string | null,
@@ -299,6 +341,24 @@ export default function AgendarPage() {
       setUploadando(false);
     }
 
+    let comprovanteUrl = null;
+    if (comprovanteFile) {
+      setUploadando(true);
+      const supabase = createClient();
+      const ext = comprovanteFile.name.split(".").pop();
+      const fileName = `comprovantes/${profissional.id}-${Date.now()}.${ext}`;
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from("referencias")
+        .upload(fileName, comprovanteFile);
+      if (!uploadError && uploadData) {
+        const { data: urlData } = supabase.storage
+          .from("referencias")
+          .getPublicUrl(uploadData.path);
+        comprovanteUrl = urlData.publicUrl;
+      }
+      setUploadando(false);
+    }
+
     const res = await fetch("/api/agendamentos", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -314,6 +374,7 @@ export default function AgendarPage() {
         email,
         local_corpo: tamanhoTattoo ? `${localCorpo} (${tamanhoTattoo}cm)` : localCorpo || null,
         referencia_url: referenciaUrl,
+        comprovante_pix_url: comprovanteUrl,
         anamnese,
       }),
     });
@@ -369,6 +430,7 @@ export default function AgendarPage() {
       `*Especificações:* ${localCorpo} - ${tamanhoTattoo}cm`,
       uploadedRefUrl ? `*Referência:* ${uploadedRefUrl}` : null,
       `*Ficha de Anamnese:* Preenchida e assinada`,
+      temSinal ? `*Sinal:* Pago (comprovante enviado de R$ ${servicoSelecionado?.sinal_valor})` : null,
       "",
       `Vamos conversar sobre a arte?`
     ]
@@ -451,11 +513,11 @@ export default function AgendarPage() {
         {/* PROGRESS STEPS */}
         <div className="bg-card border border-border/50 rounded-2xl p-4 md:p-5 shadow-sm">
           <div className="flex items-center justify-between">
-            {STEPS.map((label, i) => (
+            {stepsList.map((label, i) => (
               <div
                 key={i}
                 className={`flex items-center ${
-                  i < STEPS.length - 1 ? "flex-1" : "flex-none"
+                  i < stepsList.length - 1 ? "flex-1" : "flex-none"
                 }`}
               >
                 <div className="flex items-center gap-2 shrink-0">
@@ -482,7 +544,7 @@ export default function AgendarPage() {
                     {label}
                   </span>
                 </div>
-                {i < STEPS.length - 1 && (
+                {i < stepsList.length - 1 && (
                   <div
                     className={`flex-1 h-[1px] mx-3 transition-colors duration-300 ${
                       step > i + 1 ? "bg-muted-foreground/60" : "bg-border/30"
@@ -925,11 +987,115 @@ export default function AgendarPage() {
                 Voltar
               </button>
               <button
-                onClick={confirmarAgendamento}
+                onClick={temSinal ? () => setStep(4) : confirmarAgendamento}
                 disabled={!podeConfirmar}
                 className="flex-1 bg-primary text-primary-foreground font-bold py-3 px-6 rounded-2xl transition-all shadow-md disabled:opacity-35 disabled:cursor-not-allowed uppercase tracking-wider text-xs select-none border border-primary hover:opacity-95"
               >
-                {salvando || uploadando ? "Enviando..." : "Confirmar"}
+                {temSinal ? "Ir para Pagamento" : (salvando || uploadando ? "Enviando..." : "Confirmar")}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* STEP 4 ─ PAGAMENTO DE SINAL */}
+        {step === 4 && temSinal && (
+          <div className="space-y-6">
+            <div>
+              <h2 className="font-display text-lg font-black uppercase tracking-wider text-foreground">
+                Pagamento do Sinal
+              </h2>
+              <p className="text-xs text-muted-foreground mt-1">
+                Efetue a transferência do valor de garantia para confirmar seu agendamento
+              </p>
+            </div>
+
+            {/* CARD DE VALOR DO SINAL */}
+            <div className="bg-card border border-border/80 rounded-2xl p-6 shadow-sm flex flex-col items-center justify-center text-center space-y-2 relative overflow-hidden">
+              <div className="absolute -top-10 -right-10 w-24 h-24 rounded-full bg-primary/5 blur-xl pointer-events-none" />
+              <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/80">Valor a Transferir</span>
+              <span className="text-3xl font-black font-display text-primary">
+                R$ {Number(servicoSelecionado?.sinal_valor).toFixed(2).replace(".", ",")}
+              </span>
+              <p className="text-[11px] text-muted-foreground font-light max-w-[280px]">
+                Este valor será descontado do total de R$ {Number(servicoSelecionado?.preco).toFixed(0)} no dia da sessão.
+              </p>
+            </div>
+
+            {/* CHAVE PIX */}
+            <div className="space-y-2.5">
+              <label className="block text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                Chave Pix do Tatuador
+              </label>
+              <div className="flex items-center justify-between gap-3 bg-background border border-border/80 rounded-2xl p-4 shadow-inner">
+                <div className="space-y-0.5 min-w-0">
+                  <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Pix Beneficiário</p>
+                  <p className="text-xs font-bold text-foreground truncate select-all">{profissional?.chave_pix}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={copiarPix}
+                  className="bg-primary/10 hover:bg-primary/20 text-primary hover:text-primary/90 font-bold text-[10px] uppercase tracking-wider py-2 px-3.5 rounded-xl border border-primary/20 transition-all shrink-0 select-none"
+                >
+                  {pixCopiado ? "Copiado!" : "Copiar Chave"}
+                </button>
+              </div>
+            </div>
+
+            {/* UPLOAD DO COMPROVANTE */}
+            <div className="space-y-2">
+              <label className="block text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                Enviar comprovante Pix *
+              </label>
+              <label className="block cursor-pointer select-none">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleComprovanteChange}
+                  className="hidden"
+                />
+                {comprovantePreview ? (
+                  <div className="relative rounded-2xl overflow-hidden border border-border shadow-sm bg-card p-4 flex items-center gap-4">
+                    <img
+                      src={comprovantePreview}
+                      alt="Comprovante"
+                      className="w-16 h-16 object-cover rounded-lg block border border-border"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-bold text-foreground truncate">{comprovanteFile?.name}</p>
+                      <p className="text-[10px] text-muted-foreground">Clique para enviar outra imagem</p>
+                    </div>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-primary bg-primary/10 border border-primary/20 px-2.5 py-1.5 rounded-lg shrink-0">
+                      Alterar
+                    </span>
+                  </div>
+                ) : (
+                  <div className="border border-dashed border-border hover:border-primary/45 rounded-2xl py-8 px-6 text-center transition-all bg-card/10 hover:bg-muted/5">
+                    <Upload className="w-5 h-5 text-muted-foreground/60 mx-auto mb-2" />
+                    <p className="text-xs font-semibold text-muted-foreground/80 mb-1">
+                      Faça o upload da imagem do comprovante
+                    </p>
+                    <p className="text-[10px] text-muted-foreground/45">
+                      Formatos aceitos: JPG, PNG ou WEBP (Max 5MB)
+                    </p>
+                  </div>
+                )}
+              </label>
+            </div>
+
+            {/* BUTTONS */}
+            <div className="flex gap-3">
+              <button
+                onClick={() => setStep(3)}
+                className="flex-1 py-3 px-6 rounded-2xl border border-border hover:border-border/85 bg-transparent hover:bg-muted/10 text-muted-foreground hover:text-foreground font-bold transition-all text-xs uppercase tracking-wider shadow-sm select-none"
+              >
+                Voltar
+              </button>
+              <button
+                onClick={confirmarAgendamento}
+                disabled={salvando || uploadando || !comprovanteFile}
+                className="flex-1 bg-primary text-primary-foreground font-bold py-3 px-6 rounded-2xl transition-all shadow-md disabled:opacity-35 disabled:cursor-not-allowed uppercase tracking-wider text-xs select-none border border-primary hover:opacity-95"
+              >
+                {salvando || uploadando ? "Enviando..." : "Confirmar Agendamento"}
               </button>
             </div>
           </div>

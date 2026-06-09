@@ -1,5 +1,5 @@
 "use client";
-
+import { toast } from "sonner";
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import {
@@ -55,6 +55,8 @@ type Servico = {
   tipo_preco: string;
   ativo: boolean;
   ordem: number;
+  requer_sinal?: boolean;
+  sinal_valor?: number;
 };
 
 const TIPOS_PRECO = [
@@ -175,8 +177,11 @@ export default function ServicosPage() {
   const [duracao, setDuracao] = useState("");
   const [preco, setPreco] = useState("");
   const [tipoPreco, setTipoPreco] = useState("fixo");
+  const [requerSinal, setRequerSinal] = useState(false);
+  const [sinalValor, setSinalValor] = useState("");
   const [saving, setSaving] = useState(false);
   const [deletandoId, setDeletandoId] = useState<string | null>(null);
+  const [chavePixProfissional, setChavePixProfissional] = useState<string | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -196,10 +201,11 @@ export default function ServicosPage() {
 
     const { data: perfil } = await supabase
       .from("profissionais")
-      .select("id")
+      .select("id, chave_pix")
       .eq("user_id", user.id)
       .single();
     if (!perfil) return;
+    setChavePixProfissional(perfil.chave_pix || null);
 
     const { data } = await supabase
       .from("servicos")
@@ -244,6 +250,8 @@ export default function ServicosPage() {
       setDuracao(String(servico.duracao_minutos));
       setPreco(String(servico.preco));
       setTipoPreco(servico.tipo_preco || "fixo");
+      setRequerSinal(servico.requer_sinal || false);
+      setSinalValor(servico.sinal_valor ? String(servico.sinal_valor) : "");
     } else {
       setEditando(null);
       setNome("");
@@ -251,6 +259,8 @@ export default function ServicosPage() {
       setDuracao("");
       setPreco("");
       setTipoPreco("fixo");
+      setRequerSinal(false);
+      setSinalValor("");
     }
     setModalAberto(true);
   }
@@ -284,16 +294,30 @@ export default function ServicosPage() {
       duracao_minutos: Number(duracao),
       preco: tipoPreco !== "sob_consulta" ? Number(preco) : 0,
       tipo_preco: tipoPreco,
+      requer_sinal: requerSinal,
+      sinal_valor: requerSinal ? Number(sinalValor) : 0,
     };
 
     if (editando) {
-      await supabase.from("servicos").update(payload).eq("id", editando.id);
+      const { error } = await supabase.from("servicos").update(payload).eq("id", editando.id);
+      if (error) {
+        console.error("Erro ao editar servico:", error);
+        toast.error("Erro ao salvar serviço", { description: error.message });
+        setSaving(false);
+        return;
+      }
     } else {
       // novo serviço vai pro final da lista
       const ordemNova = servicos.length;
-      await supabase
+      const { error } = await supabase
         .from("servicos")
         .insert({ ...payload, profissional_id: perfil.id, ordem: ordemNova });
+      if (error) {
+        console.error("Erro ao criar servico:", error);
+        toast.error("Erro ao criar serviço", { description: error.message });
+        setSaving(false);
+        return;
+      }
     }
 
     await fetchServicos();
@@ -420,6 +444,61 @@ export default function ServicosPage() {
                     value={preco}
                     onChange={(e) => setPreco(e.target.value)}
                     placeholder="Ex: 200"
+                    className="w-full bg-background border border-border text-foreground px-3 py-2.5 text-sm rounded-lg focus:outline-none focus:border-ring transition-colors"
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Pagamento de Sinal */}
+            <div className="border-t border-border/40 pt-4 space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <label className="block text-xs uppercase tracking-widest text-muted-foreground">
+                    Exigir Sinal
+                  </label>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">
+                    Solicita um Pix de caução para reservar o horário.
+                  </p>
+                  {!chavePixProfissional && (
+                    <p className="text-[10px] text-amber-500/90 mt-1.5 font-medium flex items-center gap-1">
+                      ⚠️ Configure sua chave Pix no perfil para ativar.
+                    </p>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!requerSinal && !chavePixProfissional) {
+                      toast.error("Chave Pix pendente", {
+                        description: "Cadastre sua chave Pix nas configurações do perfil antes de exigir sinal em seus serviços."
+                      });
+                      return;
+                    }
+                    setRequerSinal(!requerSinal);
+                  }}
+                  className={`w-10 h-6 flex items-center rounded-full p-1 transition-all ${
+                    requerSinal ? "bg-primary" : "bg-muted"
+                  } ${!chavePixProfissional ? "opacity-45 cursor-not-allowed" : "cursor-pointer"}`}
+                >
+                  <div
+                    className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${
+                      requerSinal ? "translate-x-4" : "translate-x-0"
+                    }`}
+                  />
+                </button>
+              </div>
+
+              {requerSinal && (
+                <div className="animate-in fade-in-50 duration-200">
+                  <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-2">
+                    Valor do Sinal (R$)
+                  </label>
+                  <input
+                    type="number"
+                    value={sinalValor}
+                    onChange={(e) => setSinalValor(e.target.value)}
+                    placeholder="Ex: 50"
                     className="w-full bg-background border border-border text-foreground px-3 py-2.5 text-sm rounded-lg focus:outline-none focus:border-ring transition-colors"
                   />
                 </div>

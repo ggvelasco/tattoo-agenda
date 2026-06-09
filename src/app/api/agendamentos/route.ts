@@ -16,6 +16,7 @@ export async function POST(req: NextRequest) {
     email,
     local_corpo,
     referencia_url,
+    comprovante_pix_url,
     anamnese,
   } = body;
 
@@ -53,6 +54,7 @@ export async function POST(req: NextRequest) {
     valor,
     local_corpo: local_corpo || null,
     referencia_url: referencia_url || null,
+    comprovante_pix_url: comprovante_pix_url || null,
     anamnese: anamnese || null,
   });
 

@@ -14,7 +14,6 @@ import {
   FileText,
   Link2,
 } from "lucide-react";
-
 type Perfil = {
   nome: string;
   bio: string;
@@ -23,6 +22,7 @@ type Perfil = {
   slug: string;
   foto_url: string;
   whatsapp: string;
+  chave_pix: string;
 };
 
 export default function PerfilPage() {
@@ -37,6 +37,7 @@ export default function PerfilPage() {
   const [savedRecently, setSavedRecently] = useState(false);
   const [fotoUrl, setFotoUrl] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
+  const [chavePix, setChavePix] = useState("");
 
   useEffect(() => {
     fetchProfile();
@@ -50,6 +51,7 @@ export default function PerfilPage() {
     setSlug(perfil.slug || "");
     setFotoUrl(perfil.foto_url || "");
     setWhatsapp(perfil.whatsapp || "");
+    setChavePix(perfil.chave_pix || "");
   }
 
   async function salvar() {
@@ -67,6 +69,7 @@ export default function PerfilPage() {
         slug: slug.trim().toLowerCase().replace(/[^a-z0-9-_]/g, ""),
         foto_url: fotoUrl,
         whatsapp,
+        chave_pix: chavePix,
       })
       .eq("id", perfilId);
 
@@ -292,7 +295,6 @@ export default function PerfilPage() {
                 />
               </div>
             </div>
-
             <div>
               <label className="block text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1.5">
                 WhatsApp
@@ -309,6 +311,25 @@ export default function PerfilPage() {
               </div>
               <p className="text-[10px] text-muted-foreground mt-1.5">
                 Apenas números com DDD e o 9 (ex: 11999999999).
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1.5">
+                Chave Pix para Sinal
+              </label>
+              <div className="flex items-center gap-2 bg-background border border-border/80 rounded-xl px-3 py-2.5 shadow-sm focus-within:border-primary/50 transition-colors">
+                <Save className="w-4 h-4 text-muted-foreground/60 shrink-0" />
+                <input
+                  type="text"
+                  value={chavePix}
+                  onChange={(e) => setChavePix(e.target.value)}
+                  placeholder="Chave Celular, CPF/CNPJ, Email, etc."
+                  className="bg-transparent border-0 text-foreground text-xs focus:outline-none w-full font-medium"
+                />
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-1.5">
+                Utilizada para receber o pagamento do sinal de agendamentos.
               </p>
             </div>
           </div>

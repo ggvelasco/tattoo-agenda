@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { VisuallyHidden } from "radix-ui";
 import Link from "next/link";
+import { createClient } from "@/lib/supabase/client";
 import {
   CalendarDays,
   Clock,
@@ -73,9 +74,118 @@ export default function DashboardClient({
   onboarding = { hasServices: false, hasAvailability: false, hasProfile: false },
 }: Props) {
   const [agora, setAgora] = useState<Date | null>(null);
+  const [agendamentos, setAgendamentos] = useState<Agendamento[]>(agendamentosRaw);
 
   useEffect(() => {
     setAgora(new Date());
+  }, []);
+
+  useEffect(() => {
+    setAgendamentos(agendamentosRaw);
+  }, [agendamentosRaw]);
+
+  async function fetchAgendamentos() {
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const { data: perfil } = await supabase
+      .from("profissionais")
+      .select("id")
+      .eq("user_id", user.id)
+      .single();
+    if (!perfil) return;
+
+    const { data } = await supabase
+      .from("agendamentos")
+      .select(`
+        id,
+        data,
+        hora_inicio,
+        status,
+        local_corpo,
+        referencia_url,
+        clientes (id, nome, telefone),
+        servicos (nome, duracao_minutos)
+      `)
+      .eq("profissional_id", perfil.id)
+      .order("data", { ascending: true })
+      .order("hora_inicio", { ascending: true });
+
+    const rawList = (data as any) || [];
+
+    // Obter IDs de clientes únicos para contar agendamentos históricos
+    const clientIds = Array.from(
+      new Set(
+        rawList
+          .map((ag: any) => {
+            const c = Array.isArray(ag.clientes) ? ag.clientes[0] : ag.clientes;
+            return c?.id;
+          })
+          .filter(Boolean)
+      )
+    ) as string[];
+
+    const returningClientIds = new Set<string>();
+    if (clientIds.length > 0) {
+      const { data: counts } = await supabase
+        .from("agendamentos")
+        .select("cliente_id")
+        .in("cliente_id", clientIds)
+        .eq("profissional_id", perfil.id);
+
+      const countMap: Record<string, number> = {};
+      counts?.forEach((c) => {
+        if (c.cliente_id) {
+          countMap[c.cliente_id] = (countMap[c.cliente_id] || 0) + 1;
+        }
+      });
+
+      Object.entries(countMap).forEach(([cid, count]) => {
+        if (count > 1) {
+          returningClientIds.add(cid);
+        }
+      });
+    }
+
+    const mapped = rawList.map((ag: any) => {
+      const clienteObj = Array.isArray(ag.clientes) ? ag.clientes[0] : ag.clientes;
+      const servicoObj = Array.isArray(ag.servicos) ? ag.servicos[0] : ag.servicos;
+      return {
+        id: ag.id,
+        data: ag.data,
+        hora_inicio: ag.hora_inicio,
+        status: ag.status,
+        local_corpo: ag.local_corpo,
+        referencia_url: ag.referencia_url,
+        clientes: clienteObj ? { nome: clienteObj.nome, telefone: clienteObj.telefone } : null,
+        servicos: servicoObj ? { nome: servicoObj.nome, duracao_minutos: servicoObj.duracao_minutos } : null,
+        is_retornando: clienteObj?.id ? returningClientIds.has(clienteObj.id) : false,
+      };
+    });
+
+    setAgendamentos(mapped);
+  }
+
+  useEffect(() => {
+    const supabase = createClient();
+    const canal = supabase
+      .channel("realtime-dashboard")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "agendamentos",
+        },
+        () => {
+          fetchAgendamentos();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(canal);
+    };
   }, []);
 
   const now = agora ?? new Date();
@@ -85,6 +195,44 @@ export default function DashboardClient({
     hora < 12 ? "Bom dia" : hora < 18 ? "Boa tarde" : "Boa noite";
   const hoje = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
   const [imagemAberta, setImagemAberta] = useState<string | null>(null);
+
+  // Mapear status virtual "expirado" para pendências no passado
+  const agendamentosMapeados = useMemo(() => {
+    const hojeStr = now.toLocaleDateString("en-CA");
+    const currentMin = now.getHours() * 60 + now.getMinutes();
+
+    return agendamentos.map((ag) => {
+      let status = ag.status;
+      if (status === "pendente") {
+        const [h, m] = ag.hora_inicio.split(":").map(Number);
+        const agMin = h * 60 + m;
+        const isPast = ag.data < hojeStr || (ag.data === hojeStr && agMin < currentMin);
+        if (isPast) {
+          status = "expirado";
+        }
+      }
+      return { ...ag, status };
+    });
+  }, [agendamentos, now]);
+
+  const totalPendentesAtivos = useMemo(() => {
+    return agendamentosMapeados.filter((ag) => ag.status === "pendente").length;
+  }, [agendamentosMapeados]);
+
+  const totalProximasFiltradas = useMemo(() => {
+    const hojeStr = now.toLocaleDateString("en-CA");
+    const currentMin = now.getHours() * 60 + now.getMinutes();
+
+    return agendamentosMapeados.filter((ag) => {
+      if (ag.status === "expirado" || ag.status === "cancelado") return false;
+      if (ag.data > hojeStr) return true;
+      if (ag.data === hojeStr) {
+        const [h, m] = ag.hora_inicio.split(":").map(Number);
+        return (h * 60 + m) >= currentMin;
+      }
+      return false;
+    }).length;
+  }, [agendamentosMapeados, now]);
 
   const steps = useMemo(() => [
     {
@@ -114,8 +262,8 @@ export default function DashboardClient({
   const isAllCompleted = useMemo(() => completedCount === steps.length, [completedCount, steps]);
 
   const agendamentosHoje = useMemo(
-    () => agendamentosRaw.filter((ag) => ag.data === hoje),
-    [agendamentosRaw, hoje],
+    () => agendamentosMapeados.filter((ag) => ag.data === hoje && ag.status !== "expirado"),
+    [agendamentosMapeados, hoje],
   );
 
   const confirmadosHoje = agendamentosHoje.filter(
@@ -166,7 +314,7 @@ export default function DashboardClient({
     },
     {
       label: "Pendentes",
-      value: totalPendentes,
+      value: totalPendentesAtivos,
       sub: "Aguardando confirmação",
       color: "#f59e0b",
       bg: "rgba(245,158,11,0.08)",
@@ -175,7 +323,7 @@ export default function DashboardClient({
     },
     {
       label: "Próximas sessões",
-      value: totalProximas,
+      value: totalProximasFiltradas,
       sub: "A partir de hoje",
       color: ACCENT,
       bg: `color-mix(in srgb, ${ACCENT} 8%, transparent)`,
@@ -183,6 +331,8 @@ export default function DashboardClient({
       icon: <Zap className="w-4 h-4" style={{ color: ACCENT }} />,
     },
   ];
+
+
 
   return (
     <div className="space-y-8 max-w-4xl">
@@ -626,11 +776,18 @@ export default function DashboardClient({
             )}
             {proximoCliente.clientes?.telefone && (
               <a
-                href={`https://wa.me/55${proximoCliente.clientes.telefone.replace(/\D/g, "")}?text=${encodeURIComponent(`Olá ${proximoCliente.clientes.nome}! Confirmando sua sessão de ${proximoCliente.servicos?.nome} hoje às ${proximoCliente.hora_inicio.slice(0, 5)}.`)}`}
+                href={`https://wa.me/55${proximoCliente.clientes.telefone.replace(/\D/g, "")}?text=${encodeURIComponent(
+                  `Olá ${proximoCliente.clientes.nome}! Passando para confirmar nossa sessão de *${proximoCliente.servicos?.nome}* hoje às *${proximoCliente.hora_inicio.slice(0, 5)}h*.\n\n` +
+                  `Recomendações rápidas para hoje:\n` +
+                  `- Alimente-se bem antes de vir\n` +
+                  `- Venha com roupas confortáveis que facilitem o acesso ao local da tattoo\n` +
+                  `- Evite bebidas alcoólicas hoje.\n\n` +
+                  `Até daqui a pouco!`
+                )}`}
                 target="_blank"
                 className="inline-flex items-center justify-center gap-1.5 bg-green-500/10 text-green-400 hover:bg-green-500/20 border border-green-500/20 px-4 py-2 rounded-full text-[11px] font-bold transition-all uppercase tracking-wider shrink-0 select-none shadow-sm"
               >
-                <WaSvg size={12} /> WhatsApp
+                <WaSvg size={12} /> Lembrar Cliente
               </a>
             )}
           </div>
@@ -767,11 +924,20 @@ export default function DashboardClient({
                     {/* whatsapp */}
                     {ag.clientes?.telefone && (
                       <a
-                        href={`https://wa.me/55${ag.clientes.telefone.replace(/\D/g, "")}?text=${encodeURIComponent(`Olá ${ag.clientes.nome}! Sobre sua sessão de ${ag.servicos?.nome} hoje às ${ag.hora_inicio.slice(0, 5)}.`)}`}
+                        href={`https://wa.me/55${ag.clientes.telefone.replace(/\D/g, "")}?text=${encodeURIComponent(
+                          `Olá ${ag.clientes.nome}! Passando para lembrar da nossa sessão de *${ag.servicos?.nome}* hoje às *${ag.hora_inicio.slice(0, 5)}h*.\n\n` +
+                          `Recomendações rápidas para hoje:\n` +
+                          `- Alimente-se bem antes da sessão\n` +
+                          `- Escolha roupas confortáveis que facilitem o acesso ao local da tattoo\n` +
+                          `- Evite bebidas alcoólicas hoje.\n\n` +
+                          `Até logo!`
+                        )}`}
                         target="_blank"
-                        className="w-9 h-9 rounded-xl bg-green-500/10 border border-green-500/15 flex items-center justify-center text-green-400 hover:bg-green-500/20 transition-colors shrink-0 shadow-sm"
+                        title="Lembrar cliente no WhatsApp"
+                        className="inline-flex items-center gap-1.5 bg-green-500/10 hover:bg-green-500/20 border border-green-500/15 px-3 py-2 rounded-xl text-[10px] font-bold text-green-400 transition-all shrink-0 shadow-sm uppercase tracking-wider select-none"
                       >
                         <WaSvg size={12} />
+                        <span className="hidden sm:inline">Lembrar</span>
                       </a>
                     )}
                   </div>

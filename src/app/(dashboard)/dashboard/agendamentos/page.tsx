@@ -39,6 +39,7 @@ type Agendamento = {
   valor: number;
   local_corpo: string | null;
   referencia_url: string | null;
+  comprovante_pix_url?: string | null;
   anamnese: Anamnese | null;
   clientes: { id?: string; nome: string; telefone: string; email: string } | null;
   servicos: { nome: string; duracao_minutos: number } | null;
@@ -81,6 +82,7 @@ function DetalhesModal({
   onStatus: (id: string, status: string) => void;
 }) {
   const [imagemAberta, setImagemAberta] = useState(false);
+  const [comprovanteAberta, setComprovanteAberta] = useState(false);
 
   function formatarData(data: string, hora: string) {
     const date = new Date(data + "T12:00:00");
@@ -222,6 +224,30 @@ function DetalhesModal({
             </div>
           )}
 
+          {/* COMPROVANTE DE SINAL */}
+          {ag.comprovante_pix_url && (
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-3">
+                Comprovante de Sinal
+              </p>
+              <button
+                onClick={() => setComprovanteAberta(true)}
+                className="w-full group relative overflow-hidden rounded-2xl border border-border hover:border-primary/40 transition-colors shadow-sm"
+              >
+                <img
+                  src={ag.comprovante_pix_url}
+                  alt="Comprovante de Sinal"
+                  className="w-full max-h-64 object-cover group-hover:scale-[1.01] transition-transform duration-200"
+                />
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/35 transition-colors flex items-center justify-center">
+                  <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-background/90 backdrop-blur-sm rounded-xl px-3.5 py-2 flex items-center gap-1.5 text-xs font-semibold shadow-md">
+                    <ImageIcon className="w-3.5 h-3.5" /> Ver em tamanho real
+                  </div>
+                </div>
+              </button>
+            </div>
+          )}
+
           {/* FICHA DE ANAMNESE */}
           {ag.anamnese && (
             <div>
@@ -316,6 +342,22 @@ function DetalhesModal({
           )}
         </DialogContent>
       </Dialog>
+
+      {/* modal do comprovante */}
+      <Dialog open={comprovanteAberta} onOpenChange={setComprovanteAberta}>
+        <DialogContent className="max-w-2xl p-2">
+          <VisuallyHidden.Root>
+            <DialogTitle>Comprovante de Sinal</DialogTitle>
+          </VisuallyHidden.Root>
+          {ag.comprovante_pix_url && (
+            <img
+              src={ag.comprovante_pix_url}
+              alt="Comprovante de Sinal"
+              className="w-full rounded-xl object-contain max-h-[80vh] shadow-xl"
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
@@ -325,6 +367,19 @@ function formatarDuracao(minutos: number): string {
   const h = Math.floor(minutos / 60);
   const m = minutos % 60;
   return m === 0 ? `${h}h` : `${h}h${m}min`;
+}
+
+function obterCaminhoDoUrl(url: string, bucketName = "referencias") {
+  try {
+    const searchStr = `/storage/v1/object/public/${bucketName}/`;
+    const idx = url.indexOf(searchStr);
+    if (idx !== -1) {
+      return decodeURIComponent(url.substring(idx + searchStr.length));
+    }
+  } catch (e) {
+    console.error("Erro ao obter caminho do URL", e);
+  }
+  return null;
 }
 
 /* ── Página principal ──────────────────────────────────────────── */
@@ -352,8 +407,8 @@ export default function AgendamentosPage() {
         `*, clientes(id, nome, telefone, email), servicos(nome, duracao_minutos)`,
       )
       .eq("profissional_id", perfil.id)
-      .order("data", { ascending: true })
-      .order("hora_inicio", { ascending: true })
+      .order("data", { ascending: false })
+      .order("hora_inicio", { ascending: false })
       .limit(50);
 
     const rawList = (data as any) || [];
@@ -411,10 +466,49 @@ export default function AgendamentosPage() {
 
   useEffect(() => {
     fetchAgendamentos();
+
+    const supabase = createClient();
+    const canal = supabase
+      .channel("realtime-agendamentos")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "agendamentos",
+        },
+        () => {
+          fetchAgendamentos();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(canal);
+    };
   }, []);
 
   async function atualizarStatus(id: string, status: string) {
     const supabase = createClient();
+
+    // Se o status for confirmado ou cancelado, buscar o agendamento para excluir o comprovante e liberar espaço
+    if (status === "confirmado" || status === "cancelado") {
+      const { data: ag } = await supabase
+        .from("agendamentos")
+        .select("comprovante_pix_url")
+        .eq("id", id)
+        .single();
+
+      if (ag?.comprovante_pix_url) {
+        const caminho = obterCaminhoDoUrl(ag.comprovante_pix_url);
+        if (caminho) {
+          await supabase.storage.from("referencias").remove([caminho]);
+        }
+        // Limpar a URL no banco para não apontar para um link quebrado
+        await supabase.from("agendamentos").update({ comprovante_pix_url: null }).eq("id", id);
+      }
+    }
+
     await supabase.from("agendamentos").update({ status }).eq("id", id);
     await fetchAgendamentos();
   }
@@ -435,7 +529,6 @@ export default function AgendamentosPage() {
     s === "todos"
       ? agendamentos.length
       : agendamentos.filter((ag) => ag.status === s).length;
-
   const statusConfig: Record<
     string,
     { label: string; icon: React.ReactNode; badge: string }
@@ -459,6 +552,11 @@ export default function AgendamentosPage() {
       label: "Concluído",
       icon: <CheckCircle2 className="w-3 h-3" />,
       badge: "bg-blue-500/10 text-blue-400 border border-blue-500/20",
+    },
+    expirado: {
+      label: "Expirado",
+      icon: <Clock className="w-3 h-3" />,
+      badge: "bg-muted text-muted-foreground border border-border/50 opacity-70",
     },
   };
 
